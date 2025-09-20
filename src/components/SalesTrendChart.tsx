@@ -48,12 +48,6 @@ export default function SalesTrendLast30DaysChart() {
     }
   }
 
-  function handleRetry() {
-    queryClient.invalidateQueries({
-      queryKey: ["sales-trend", store?.store_id],
-    });
-  }
-
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: ["sales-trend", store?.store_id],
     queryFn: fetchSalesTrend30Days,

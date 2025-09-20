@@ -1,7 +1,12 @@
 "use client";
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { DollarSign, ShoppingCart, TrendingUp } from "lucide-react";
+import {
+  DollarSign,
+  ShoppingCart,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 import useStore from "../../utils/zustand";
 import axiosInstance from "../../utils/axiosInstance";
 import { useQuery } from "@tanstack/react-query";
@@ -54,16 +59,21 @@ export default function SaleKPI() {
             {getCurrencySymbol(store?.currency as string)}
             {data?.revenue?.total}
           </div>
-          <p className="text-xs dark:text-green-300 text-green-600 flex items-center mt-1.5 gap-1">
-            {data?.revenue?.change !== undefined && (
+          <p
+            className={`text-xs flex items-center mt-1.5 gap-1  ${
+              data?.revenue?.change > 0
+                ? "text-green-600 dark:text-green-300"
+                : "text-red-600 dark:text-red-300"
+            }`}
+          >
+            {data?.revenue?.change !== undefined &&
+            data?.revenue?.change > 0 ? (
               <TrendingUp
-                className={`w-4 h-4 mr-1 ${
-                  data.revenue.change > 0
-                    ? "text-green-600 dark:text-green-300"
-                    : data.revenue.change < 0
-                    ? "rotate-180 text-red-600 dark:text-red-300"
-                    : "text-gray-400"
-                }`}
+                className={`w-4 h-4 mr-1 text-green-600 dark:text-green-300`}
+              />
+            ) : (
+              <TrendingDown
+                className={`w-4 h-4 mr-1 text-red-600 dark:text-red-300`}
               />
             )}
             {data?.revenue?.change !== undefined && (
@@ -86,7 +96,22 @@ export default function SaleKPI() {
           <div className="text-2xl font-bold text-foreground mb-1">
             {data?.sales?.total}
           </div>
-          <p className="text-xs dark:text-blue-300 text-blue-600 flex items-center mt-1.5">
+          <p
+            className={`text-xs flex items-center mt-1.5 gap-1  ${
+              data?.sales?.change > 0
+                ? "text-green-600 dark:text-green-300"
+                : "text-red-600 dark:text-red-300"
+            }`}
+          >
+            {data?.sales?.change !== undefined && data?.sales?.change > 0 ? (
+              <TrendingUp
+                className={`w-4 h-4 mr-1 text-green-600 dark:text-green-300`}
+              />
+            ) : (
+              <TrendingDown
+                className={`w-4 h-4 mr-1 text-red-600 dark:text-red-300`}
+              />
+            )}
             {data?.sales?.change !== undefined && (
               <>
                 {data.sales.change > 0 ? "+" : ""}
@@ -108,16 +133,21 @@ export default function SaleKPI() {
             {getCurrencySymbol(store?.currency as string)}
             {data?.averageSaleValue?.value}
           </div>
-          <p className="text-xs text-purple-600 dark:text-purple-300 mt-1.5 flex items-center gap-1">
-            {data?.averageSaleValue?.change !== undefined && (
+          <p
+            className={`text-xs flex items-center mt-1.5 gap-1  ${
+              data?.averageSaleValue?.change > 0
+                ? "text-green-600 dark:text-green-300"
+                : "text-red-600 dark:text-red-300"
+            }`}
+          >
+            {data?.averageSaleValue?.change !== undefined &&
+            data?.averageSaleValue?.change > 0 ? (
               <TrendingUp
-                className={`w-4 h-4 mr-1 ${
-                  data.averageSaleValue.change > 0
-                    ? "text-green-600 dark:text-green-300"
-                    : data.averageSaleValue.change < 0
-                    ? "rotate-180 text-red-600 dark:text-red-300"
-                    : "text-gray-400"
-                }`}
+                className={`w-4 h-4 mr-1 text-green-600 dark:text-green-300`}
+              />
+            ) : (
+              <TrendingDown
+                className={`w-4 h-4 mr-1 text-red-600 dark:text-red-300`}
               />
             )}
             {data?.averageSaleValue?.change !== undefined && (

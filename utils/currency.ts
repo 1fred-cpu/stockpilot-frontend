@@ -1,6 +1,6 @@
 import currency from "currency-codes";
-export function getCurrencySymbol(currencyCode: string) {
-  const currencyData = currency.code(currencyCode);
+export function getCurrencySymbol(currencyCode?: string) {
+  const currencyData = currency.code(currencyCode as string);
   // You can use a simple mapping for common currency symbols
   const symbolMap: Record<string, string> = {
     USD: "$",
@@ -52,5 +52,7 @@ export function getCurrencySymbol(currencyCode: string) {
     MAD: "د.م.",
     // Add more as needed
   };
-  return currencyData ? symbolMap[currencyData.code] || currencyData.code : "";
+  return currencyData
+    ? symbolMap[currencyCode as string] || currencyData.code
+    : "";
 }
