@@ -27,12 +27,6 @@ export default function KPI() {
     }
   }
 
-  function handleRetry() {
-    // Refetch KPI data using react-query's refetch method
-    queryClient.invalidateQueries({
-      queryKey: ["kpiData", store?.store_id],
-    });
-  }
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: ["kpiData", store?.store_id],
     queryFn: fetchKPIData,

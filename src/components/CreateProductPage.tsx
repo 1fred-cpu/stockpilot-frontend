@@ -66,9 +66,9 @@ const initialVariant: Variant = {
   name: "",
   price: "",
   inventory: {
-    quantity: 0,
-    lowQuantityThreshold: 0,
-    reserved: 0,
+    quantity: "",
+    lowQuantityThreshold: "",
+    reserved: "",
   },
   sku: "",
 };
@@ -154,7 +154,7 @@ export default function CreateProductPage() {
       newErrors.category_type = "Category is required";
       valid = false;
     }
-    if (!product.thumbnail && !thumbnailFile && !thumbnailPreview) {
+    if (!thumbnailFile && !thumbnailPreview) {
       newErrors.thumbnail = "Thumbnail image file is required";
       valid = false;
     }
@@ -475,6 +475,7 @@ export default function CreateProductPage() {
                 disabled={loading}
                 id="name"
                 name="name"
+                placeholder="eg. Luxeline"
                 value={product.name}
                 onChange={handleChange}
                 onFocus={handleOnFocusInput}
@@ -492,6 +493,7 @@ export default function CreateProductPage() {
                 disabled={loading}
                 id="brand"
                 name="brand"
+                placeholder="eg. Ralph Lauren"
                 value={product.brand}
                 onChange={handleChange}
                 onFocus={handleOnFocusInput}
@@ -507,6 +509,7 @@ export default function CreateProductPage() {
                 disabled={loading}
                 id="category"
                 name="category_type"
+                placeholder="eg. Men Clothing"
                 value={product.category_type}
                 onChange={handleChange}
                 onFocus={handleOnFocusInput}
@@ -523,6 +526,7 @@ export default function CreateProductPage() {
               <Textarea
                 id="description"
                 name="description"
+                placeholder="eg. A short summary of the product, its features, and any important details customers should know."
                 value={product.description}
                 onChange={handleChange}
                 className={`${errors.description ? "border-destructive" : ""}`}
@@ -742,7 +746,7 @@ export default function CreateProductPage() {
                               value={variant.name}
                               onChange={(e) => handleVariantChange(idx, e)}
                               onFocus={(e) => handleVariantOnFocusInput(e, idx)}
-                              placeholder="Name"
+                              placeholder="eg. Small - Red"
                               title="Name"
                               className={`${
                                 errors?.product_variants?.[idx]?.name
@@ -785,7 +789,7 @@ export default function CreateProductPage() {
                                   ? "border-destructive"
                                   : ""
                               }`}
-                              placeholder="Quantity"
+                              placeholder="eg. 50"
                               min={0}
                               title="Quantity"
                             />
@@ -810,7 +814,7 @@ export default function CreateProductPage() {
                                   ? "border-destructive"
                                   : ""
                               }`}
-                              placeholder="Price"
+                              placeholder="eg. 59.99"
                               min={0}
                               step={0.01}
                               title="Price"
@@ -852,7 +856,7 @@ export default function CreateProductPage() {
                                   ? "border-destructive"
                                   : ""
                               }`}
-                              placeholder="Low Quantity Threshold"
+                              placeholder="eg. 5"
                               min={0}
                               title="Low Quantity Threshold"
                             />
@@ -878,7 +882,7 @@ export default function CreateProductPage() {
                                   ? "border-destructive"
                                   : ""
                               }`}
-                              placeholder="Reserved"
+                              placeholder="eg. 10"
                               min={0}
                               title="Reserved"
                             />
@@ -917,7 +921,7 @@ export default function CreateProductPage() {
                                   ? "border-destructive"
                                   : ""
                               }`}
-                              placeholder="SKU"
+                              placeholder="eg. WS-0001"
                               title="SKU"
                             />
                             {errors?.product_variants?.[idx]?.sku && (

@@ -66,13 +66,17 @@ const recentTransactions = [
     date: "Jan 28",
   },
 ];
-function getStatusColor(status: string) {
+export function getStatusColor(status: string) {
   switch (status) {
     case "Paid":
       return "text-green-500";
     case "Pending":
       return "text-yellow-500";
+    case "Low Stock":
+      return "text-yellow-500";
     case "Refunded":
+      return "text-red-500";
+    case "Out of Stock":
       return "text-red-500";
     default:
       "";
@@ -87,7 +91,7 @@ export default function RecentTransactions() {
   async function fetchRecentTransaction() {
     try {
       const response = await axiosInstance.get(
-        `$/analytics/sales-latest/${store?.store_id}`
+        `/analytics/sales-latest/${store?.store_id}`
       );
       return response.data;
     } catch (error) {

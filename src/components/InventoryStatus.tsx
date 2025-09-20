@@ -72,7 +72,7 @@ export default function InventoryStatus() {
       <CardContent className="flex-1 flex ">
         <div className="space-y-4 flex flex-col flex-1">
           {inventoryData.length ? (
-            inventoryData.map((item: Inventory, index: number) => (
+            inventoryData.map((item: any, index: number) => (
               <div key={index} className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="font-medium text-foreground">
