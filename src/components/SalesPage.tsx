@@ -4,6 +4,7 @@ import SaleKPI from "./SaleKPI";
 import TrendingSales from "./TrendingSales";
 import { Button } from "./ui/button";
 import SaleTable from "./SaleTable";
+import Link from "next/link";
 
 export default function SalesPage() {
   return (
@@ -16,10 +17,12 @@ export default function SalesPage() {
           subtitle="Track sales performance and manage transactions"
         />
         <div className="w-full md:w-fit">
-          <Button className="w-full">
-            <Plus />
-            Create Sale
-          </Button>
+          <Link href="/dashboard/sales/create">
+            <Button className="w-full">
+              <Plus />
+              Create Sale
+            </Button>
+          </Link>
         </div>
       </div>
 

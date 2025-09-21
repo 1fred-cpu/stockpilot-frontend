@@ -350,14 +350,18 @@ export default function ProductsPage() {
                       <TableCell className="font-medium">
                         {getCurrencySymbol(store?.currency as string)}
                         {minOriginalPrice === maxOriginalPrice
-                          ? minOriginalPrice
-                          : `${minOriginalPrice} - ${maxOriginalPrice}`}
+                          ? minOriginalPrice?.toFixed(2)
+                          : `${minOriginalPrice?.toFixed(
+                              2
+                            )} - ${maxOriginalPrice?.toFixed(2)}`}
                       </TableCell>
                       <TableCell className="font-medium">
                         {getCurrencySymbol(store?.currency as string)}
                         {minFinalPrice === maxFinalPrice
-                          ? minFinalPrice
-                          : `${minFinalPrice} - ${maxFinalPrice}`}
+                          ? minFinalPrice?.toFixed(2)
+                          : `${minFinalPrice?.toFixed(
+                              2
+                            )} - ${maxFinalPrice?.toFixed(2)}`}
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(totalStock, lowStockThreshold)}

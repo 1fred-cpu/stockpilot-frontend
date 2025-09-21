@@ -116,6 +116,17 @@ export default function SaleTable() {
   );
   const { getActiveStore } = useStore();
   const store = getActiveStore();
+
+  async function fetchSalesByDate() {
+    try {
+      const response = await axiosInstance.get(
+        `/sales/stores/${store?.store_id}?date=${selectedDate}`
+      );
+      return await response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: ["sales-by-date", store?.store_id],
     queryFn: fetchSalesByDate,
@@ -123,17 +134,8 @@ export default function SaleTable() {
     refetchOnWindowFocus: false,
   });
 
-  async function fetchSalesByDate() {
-    try {
-      const response = await axiosInstance.get(
-        `/sales/stores/${store?.store_id}?date=${selectedDate}`
-      );
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
   const transactions = data?.saleItems || [];
+  console.log("Fetched transactions:", transactions);
 
   // Filter transactions by  search, and date
   const filteredTransactions = useMemo(() => {
@@ -152,7 +154,7 @@ export default function SaleTable() {
 
       return matchesStatus && matchesSearch && matchesDate;
     });
-  }, [statusFilter, searchTerm, selectedDate]);
+  }, [statusFilter, searchTerm, selectedDate, data]);
 
   // Calculate total revenue
   const totalRevenue = useMemo(() => {
@@ -250,6 +252,7 @@ export default function SaleTable() {
               <TableHead>Quantity</TableHead>
               <TableHead>Unit Price</TableHead>
               <TableHead>Amount</TableHead>
+              <TableHead>Payment Method</TableHead>
               <TableHead>Date</TableHead>
               {/* <TableHead>Status</TableHead> */}
             </TableRow>
@@ -260,7 +263,7 @@ export default function SaleTable() {
                 key={transaction?.sale_id + transaction?.product_variant?.id}
               >
                 <TableCell className="font-mono text-sm">
-                  {transaction?.sale_id}
+                  {transaction?.reference || transaction?.sale_id}
                 </TableCell>
 
                 <TableCell className="font-medium">
@@ -279,6 +282,9 @@ export default function SaleTable() {
                 </TableCell>
                 <TableCell className="font-medium">
                   {transaction?.total_price?.toFixed(2)}
+                </TableCell>
+                <TableCell className="font-medium">
+                  {transaction?.payment_method}
                 </TableCell>
                 <TableCell className="text-foreground">
                   {transaction?.created_at

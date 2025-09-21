@@ -60,7 +60,7 @@ export default function KPI() {
             {data?.sales.currentMonth > 0
               ? getCurrencySymbol(store?.currency as string)
               : null}
-            {data?.sales.currentMonth}
+            {data?.sales.currentMonth?.toFixed(2)}
           </div>
           {data?.sales.percentageChange > 0 && (
             <p className="text-xs text-green-600 dark:text-green-400 flex items-center">

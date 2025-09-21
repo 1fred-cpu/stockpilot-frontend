@@ -25,8 +25,8 @@ import ErrorScreen from "./ErrorScreen";
 interface Transaction {
   saleId: string;
   product: string;
-  amount: string;
-  status: string;
+  amount: number;
+  quantity: number;
 }
 
 const recentTransactions = [
@@ -134,7 +134,7 @@ export default function RecentTransactions() {
                 <TableHead>Sale ID</TableHead>
                 <TableHead>Product</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Quantity</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -146,7 +146,7 @@ export default function RecentTransactions() {
                   <TableCell>{transaction.product}</TableCell>
                   <TableCell>
                     {getCurrencySymbol(store?.currency as string)}
-                    {transaction.amount}
+                    {transaction.amount.toFixed(2)}
                   </TableCell>
                   <TableCell>
                     {/* <Badge
@@ -160,12 +160,8 @@ export default function RecentTransactions() {
                       >
                         {transaction.status}
                       </Badge> */}
-                    <span
-                      className={`${getStatusColor(
-                        transaction.status
-                      )} font-medium`}
-                    >
-                      {transaction.status}
+                    <span className={`font-medium`}>
+                      {transaction.quantity}
                     </span>
                   </TableCell>
                 </TableRow>

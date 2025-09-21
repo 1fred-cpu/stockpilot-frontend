@@ -57,7 +57,7 @@ export default function SaleKPI() {
         <CardContent>
           <div className="text-2xl font-bold text-foreground">
             {getCurrencySymbol(store?.currency as string)}
-            {data?.revenue?.total}
+            {data?.revenue?.total?.toFixed(2)}
           </div>
           <p
             className={`text-xs flex items-center mt-1.5 gap-1  ${
@@ -131,7 +131,7 @@ export default function SaleKPI() {
         <CardContent>
           <div className="text-2xl font-bold text-foreground mb-1">
             {getCurrencySymbol(store?.currency as string)}
-            {data?.averageSaleValue?.value}
+            {data?.averageSaleValue?.value?.toFixed(2)}
           </div>
           <p
             className={`text-xs flex items-center mt-1.5 gap-1  ${

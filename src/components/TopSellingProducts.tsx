@@ -14,6 +14,7 @@ import { Skeleton } from "./ui/skeleton";
 import { Button } from "./ui/button";
 import { getCurrencySymbol } from "../../utils/currency";
 import ErrorScreen from "./ErrorScreen";
+import Image from "next/image";
 
 type Product = {
   name: string | null;
@@ -43,16 +44,11 @@ export default function TopSellingProducts() {
     }
   }
 
-  function handleRetry() {
-    queryClient.invalidateQueries({
-      queryKey: ["top-selling-products", store?.store_id],
-    });
-  }
-
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: ["top-selling-products", store?.store_id],
     queryFn: fetchTopSellingProducts,
     enabled: !!store?.store_id,
+    refetchOnWindowFocus: false,
   });
 
   const topProducts = data ?? [];
@@ -74,10 +70,20 @@ export default function TopSellingProducts() {
       <CardContent className="flex flex-1">
         <div className="space-y-4 flex flex-col flex-1">
           {topProducts.length ? (
-            topProducts.map((product: Product, index: number) => (
+            topProducts.map((product: any, index: number) => (
               <div key={index} className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-foreground">{product.name}</p>
+                <div className="flex items-center gap-4">
+                  <Image
+                    src={product.image_url}
+                    alt={product.name}
+                    width={600}
+                    height={400}
+                    className="rounded-md object-cover w-16 h-16"
+                    loading="lazy"
+                  />
+                  <p className="font-medium text-foreground text-sm">
+                    {product.name}
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     {product.sales} units sold
                   </p>
@@ -85,7 +91,7 @@ export default function TopSellingProducts() {
                 <div className="text-right">
                   <p className="font-medium text-foreground">
                     {getCurrencySymbol(store?.currency as string)}
-                    {product.revenue}
+                    {product.revenue?.toFixed(2)}
                   </p>
                 </div>
               </div>

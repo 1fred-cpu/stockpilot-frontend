@@ -1,9 +1,9 @@
 "use client";
-import { Package } from "lucide-react";
+import { Package, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
-import { Accordion } from "@radix-ui/react-accordion";
 import {
+  Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
@@ -39,6 +39,7 @@ export default function RestockedManagement() {
   const { getActiveStore, appStore } = useStore();
   const store = getActiveStore();
   const [loading, setLoading] = useState<boolean>(false);
+
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: [`store-products`, store?.store_id],
     queryFn: fetchProductWithVariants,
@@ -58,6 +59,7 @@ export default function RestockedManagement() {
   }
 
   const products = data?.products || [];
+
   const handleRestockChange = (variantId: string, value: number) => {
     setRestockData((prev) => ({
       ...prev,
@@ -65,7 +67,28 @@ export default function RestockedManagement() {
     }));
   };
 
+  const handleRemoveItem = (variantId: string) => {
+    setRestockData((prev) => {
+      const updated = { ...prev };
+      delete updated[variantId];
+      return updated;
+    });
+  };
+
+  const ensureNewIntentIfNeeded = () => {
+    if (!idempotencyKey) {
+      setIdempotencyKey(uuidv4());
+    }
+  };
+
   const handleSubmitRestock = async () => {
+    ensureNewIntentIfNeeded();
+
+    if (selectedVariants.length === 0) {
+      toast.error("No variants selected to restock.");
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await axiosInstance.post("/inventory/restock", {
@@ -79,11 +102,13 @@ export default function RestockedManagement() {
           quantity: restockData[variant.id] || 0,
         })),
       });
+
       if (response.data.results) {
         toast.success(response.data?.message);
+        setIdempotencyKey(""); // clear key to allow new intent
         setRestockData({});
-        setIdempotencyKey(uuidv4());
         refetch();
+        // keep same idempotencyKey until reset
       }
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message);
@@ -94,6 +119,7 @@ export default function RestockedManagement() {
 
   const handleReset = () => {
     setRestockData({});
+    setIdempotencyKey(uuidv4()); // only generate new key when reset
   };
 
   // --- Filtering + Pagination ---
@@ -128,8 +154,9 @@ export default function RestockedManagement() {
   if (error) {
     return <ErrorScreen handleRetry={refetch} />;
   }
+
   return (
-    <div className=" flex flex-col lg:grid lg:grid-cols-3 gap-6">
+    <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
       {/* Left: Table with Accordion */}
       <Card className="md:col-span-2">
         <CardHeader>
@@ -278,7 +305,19 @@ export default function RestockedManagement() {
                   {variant.name} • {variant.sku}
                 </p>
               </div>
-              <span className="font-semibold">+{restockData[variant.id]}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">
+                  +{restockData[variant.id]}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveItem(variant.id)}
+                  disabled={loading}
+                >
+                  <X className="w-4 h-4 text-red-500" />
+                </Button>
+              </div>
             </div>
           ))}
 
@@ -292,8 +331,7 @@ export default function RestockedManagement() {
                 Reset
               </Button>
               <Button onClick={handleSubmitRestock} disabled={loading}>
-                {loading ? <ClipLoader color="#ffffff" size={18} /> : ""}
-                Submit Restock
+                {loading ? <ClipLoader color="#ffffff" size={18} /> : "Submit"}
               </Button>
             </div>
           )}
