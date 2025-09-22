@@ -92,7 +92,6 @@ export default function StoresPage() {
 
   // Drawer / detail state
   const [openStore, setOpenStore] = useState<StoreItem | null>(null);
-  const activeStore = getActiveStore?.();
 
   useEffect(() => {
     let cancelled = false;
@@ -130,7 +129,7 @@ export default function StoresPage() {
       return (
         (store?.name || "").toLowerCase().includes(q) ||
         (store?.location || "").toLowerCase().includes(q) ||
-        (store?.managers?.[0].name || "").toLowerCase().includes(q)
+        (store?.managers?.[0]?.name || "").toLowerCase().includes(q)
       );
     });
   }, [stores, query, filterStatus]);
@@ -305,7 +304,7 @@ export default function StoresPage() {
                         <h3 className="text-lg font-medium">{store?.name}</h3>
                         <div className="text-sm text-muted-foreground mt-1">
                           {store.location
-                            ? `${store?.location} • ${store.city ?? ""}`
+                            ? `${store?.location} • ${store.address ?? ""}`
                             : "No address"}
                         </div>
                         <div className="text-xs text-muted-foreground mt-2">
@@ -426,7 +425,7 @@ export default function StoresPage() {
                         {store?.name}
                       </TableCell>
                       <TableCell>{store?.location ?? "—"}</TableCell>
-                      <TableCell>{store?.managers?.[0].name ?? "—"}</TableCell>
+                      <TableCell>{store?.managers?.[0]?.name ?? "—"}</TableCell>
                       <TableCell>
                         {store?.stock?.total_products ?? "—"}
                       </TableCell>
