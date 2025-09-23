@@ -327,7 +327,11 @@ export default function StoresPage() {
               {paginated?.map((store: any) => (
                 <div
                   key={store?.id}
-                  className="border rounded-md p-4 flex flex-col justify-between"
+                  className={`border rounded-md p-4 flex flex-col justify-between transition ${
+                    getActiveStore()?.store_id === store?.id
+                      ? "border-primary/80"
+                      : ""
+                  }`}
                 >
                   <div>
                     <div className="flex items-start justify-between gap-3">
