@@ -46,6 +46,7 @@ import {
   Trash2,
   Edit,
   ArrowRight,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import useStore from "../../utils/zustand"; // adjust path if needed
@@ -54,7 +55,16 @@ import axios from "axios";
 import axiosInstance from "../../utils/axiosInstance";
 import { get } from "http";
 import { getCurrencySymbol } from "../../utils/currency";
-
+import { useQuery } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
+import Image from "next/image";
 type StoreItem = {
   id: string;
   name: string;
@@ -78,8 +88,7 @@ export default function StoresPage() {
   const store = getActiveStore();
 
   const [stores, setStores] = useState<StoreItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  // const [loading, setLoading] = useState<boolean>(true);
 
   // UI state
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -92,37 +101,27 @@ export default function StoresPage() {
 
   // Drawer / detail state
   const [openStore, setOpenStore] = useState<StoreItem | null>(null);
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: ["stores", store?.store_id],
+    queryFn: fetchStores,
+    enabled: !!store?.store_id,
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    // Replace with axiosInstance if you prefer
-    async function fetchStores() {
-      try {
-        const response = await axiosInstance.get(
-          `stores/${store?.business_id}/all`
-        );
-        if (cancelled) return;
-        setStores(response.data || []);
-      } catch (error) {
-        console.log(error);
-        if (cancelled) return;
-        setError("Failed to load stores");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  async function fetchStores() {
+    try {
+      const response = await axiosInstance.get(
+        `stores/${store?.business_id}/all`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
     }
-    fetchStores();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  }
 
   // Derived filtered list
   const filtered = useMemo(() => {
-    return stores.filter((store: any) => {
+    return data?.filter((store: any) => {
       // if (filterStatus !== "all" && store.status !== filterStatus) return false;
       if (!query) return true;
       const q = query.toLowerCase();
@@ -132,14 +131,14 @@ export default function StoresPage() {
         (store?.managers?.[0]?.name || "").toLowerCase().includes(q)
       );
     });
-  }, [stores, query, filterStatus]);
+  }, [data, query]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const totalPages = Math.max(1, Math.ceil(filtered?.length / itemsPerPage));
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(1);
   }, [totalPages]);
 
-  const paginated = filtered.slice(
+  const paginated = filtered?.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -149,7 +148,7 @@ export default function StoresPage() {
     try {
       // Optionally call backend to set session store
       setActiveStore?.(store);
-      toast.success(`Switched to ${store.name}`);
+      toast.success(`Switched to ${store?.name}`);
     } catch (err: any) {
       toast.error(err?.message || "Could not switch store");
     }
@@ -264,13 +263,13 @@ export default function StoresPage() {
           <CardTitle className="flex items-center justify-between">
             <span>All stores</span>
             <span className="text-sm text-muted-foreground">
-              {stores.length} total
+              {data?.length} total
             </span>
           </CardTitle>
         </CardHeader>
 
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="space-y-3">
@@ -280,11 +279,43 @@ export default function StoresPage() {
               ))}
             </div>
           ) : error ? (
-            <div className="p-8 text-center text-destructive">
-              <p className="mb-2">Failed to load stores</p>
-              <p className="text-sm">{error}</p>
+            <div className="flex flex-col items-center justify-center p-10 text-center space-y-4">
+              {/* Illustration (replace with your own SVG/PNG if you have one) */}
+              {/* <Image
+                src="/images/error-illustration.svg" // Add an illustration in your public/images folder
+                alt="Error Illustration"
+                width={200}
+                height={200}
+                className="mx-auto opacity-90"
+              /> */}
+
+              {/* Icon + Title */}
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="w-6 h-6" />
+                <h2 className="text-lg font-semibold">
+                  Oops! Something went wrong
+                </h2>
+              </div>
+
+              {/* Error details */}
+              <p className="text-sm text-muted-foreground max-w-md">
+                We couldn’t load your stores right now. Please try again.
+                <span className="block mt-1 text-xs text-destructive">
+                  {error.message}
+                </span>
+              </p>
+
+              {/* Retry button */}
+
+              <Button
+                variant="destructive"
+                onClick={refetch as any}
+                className="mt-2"
+              >
+                Retry
+              </Button>
             </div>
-          ) : filtered.length === 0 ? (
+          ) : filtered?.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-lg font-medium">No stores found</p>
               <p className="text-sm text-muted-foreground">
@@ -292,18 +323,18 @@ export default function StoresPage() {
               </p>
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {paginated.map((store: any) => (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+              {paginated?.map((store: any) => (
                 <div
                   key={store?.id}
-                  className="border rounded-lg p-4 flex flex-col justify-between"
+                  className="border rounded-md p-4 flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h3 className="text-lg font-medium">{store?.name}</h3>
                         <div className="text-sm text-muted-foreground mt-1">
-                          {store.location
+                          {store?.location
                             ? `${store?.location} • ${store.address ?? ""}`
                             : "No address"}
                         </div>
@@ -349,7 +380,7 @@ export default function StoresPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between mt-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between mt-4">
                     <div className="flex gap-2">
                       <Button
                         size="sm"
@@ -384,20 +415,69 @@ export default function StoresPage() {
                       </Button>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="mt-4 md:mt-0 flex flex-col md:flex-row gap-2">
                       <Button
                         size="sm"
                         onClick={() => handleSwitchStore(store)}
                       >
-                        Switch
+                        Switch Store
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDeleteStore(store)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete Store
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="max-w-md rounded-2xl shadow-lg">
+                          <div className="space-y-4">
+                            <AlertDialogTitle className="text-lg font-semibold text-red-600 flex items-center gap-2">
+                              <Trash2 className="w-5 h-5 text-red-600" />
+                              Delete Store
+                            </AlertDialogTitle>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              Are you absolutely sure you want to{" "}
+                              <span className="font-medium text-red-600">
+                                delete this store
+                              </span>
+                              ? This action is{" "}
+                              <span className="font-semibold">permanent</span>{" "}
+                              and will:
+                            </p>
+                            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                              <li>
+                                Delete all products belonging to this store
+                              </li>
+                              <li>Remove associated users and roles</li>
+                              <li>Erase store-specific settings and data</li>
+                            </ul>
+                            <p className="text-sm text-muted-foreground">
+                              Once deleted,{" "}
+                              <span className="font-semibold">
+                                this action cannot be undone
+                              </span>
+                              .
+                            </p>
+                          </div>
+                          <div className="flex justify-end gap-3 mt-6">
+                            <AlertDialogCancel asChild>
+                              <Button variant="outline">Cancel</Button>
+                            </AlertDialogCancel>
+                            <AlertDialogAction asChild>
+                              <Button
+                                variant="destructive"
+                                className="font-semibold px-6"
+                              >
+                                Yes, Delete Store
+                              </Button>
+                            </AlertDialogAction>
+                          </div>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </div>
@@ -489,8 +569,8 @@ export default function StoresPage() {
               <div className="flex items-center justify-between mt-4">
                 <div className="text-sm text-muted-foreground">
                   Showing {(currentPage - 1) * itemsPerPage + 1} -{" "}
-                  {Math.min(currentPage * itemsPerPage, filtered.length)} of{" "}
-                  {filtered.length}
+                  {Math.min(currentPage * itemsPerPage, filtered?.length)} of{" "}
+                  {filtered?.length}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

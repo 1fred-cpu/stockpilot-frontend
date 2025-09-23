@@ -19,6 +19,7 @@ import useStore from "../../utils/zustand";
 import axiosInstance from "../../utils/axiosInstance";
 import { Card, CardContent } from "./ui/card";
 import PageHeader from "./PageHeader";
+import { Skeleton } from "./ui/skeleton";
 
 type User = {
   id: string;
@@ -58,8 +59,7 @@ export default function StoreDetailsPage({ id }: { id: string }) {
           setOriginalData(store);
           reset(store);
 
-          const userRes = await axiosInstance.get(`/stores/${id}/users`);
-          setUsers(userRes.data || []);
+          setUsers(store?.storeUsers || []);
         }
       } catch (error: any) {
         toast.error(error.message);
@@ -88,13 +88,25 @@ export default function StoreDetailsPage({ id }: { id: string }) {
   const onSubmit = async (data: FormData) => {
     try {
       setSaving(true);
-      const response = await axiosInstance.patch("/stores", {
+      const response = await axiosInstance.patch(`/stores/${store?.store_id}`, {
         ...data,
         business_id: businessId,
       });
       if (!response.data) throw new Error("Failed to update store");
       setOriginalData(response.data);
       reset(response.data);
+
+      const isCurrentStore = store?.store_id === response.data.id;
+      if (isCurrentStore) {
+        useStore.getState().setActiveStore({
+          business_id: response.data.business_id,
+          store_id: response.data.id,
+          store_name: response.data.name,
+          currency: response.data.currency,
+          location: response.data.location,
+          business_name: store?.business_name || "",
+        });
+      }
       toast.success("Store updated successfully!");
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
@@ -142,7 +154,7 @@ export default function StoreDetailsPage({ id }: { id: string }) {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <StoreDetailsSkeleton />;
 
   return (
     <div className="p-6 space-y-8">
@@ -171,6 +183,7 @@ export default function StoreDetailsPage({ id }: { id: string }) {
                     <Label htmlFor="name">Store Name</Label>
                     <Input
                       id="name"
+                      disabled={saving}
                       placeholder="e.g. Downtown Outlet"
                       {...register("name", {
                         required: "Store name is required",
@@ -188,6 +201,7 @@ export default function StoreDetailsPage({ id }: { id: string }) {
                     <Label htmlFor="location">Location</Label>
                     <Input
                       id="location"
+                      disabled={saving}
                       placeholder="e.g. New York, NY"
                       {...register("location", {
                         required: "Location is required",
@@ -207,6 +221,7 @@ export default function StoreDetailsPage({ id }: { id: string }) {
                     <Label htmlFor="address">Address</Label>
                     <Input
                       id="address"
+                      disabled={saving}
                       placeholder="e.g. 123 Main Street"
                       {...register("address", {
                         required: "Address is required",
@@ -226,6 +241,7 @@ export default function StoreDetailsPage({ id }: { id: string }) {
                     <Label htmlFor="email">Contact Email</Label>
                     <Input
                       id="email"
+                      disabled={saving}
                       placeholder="e.g. contact@store.com"
                       {...register("email", { required: "Email is required" })}
                       className={`${errors.email ? "border-destructive" : ""}`}
@@ -242,6 +258,7 @@ export default function StoreDetailsPage({ id }: { id: string }) {
                     <Input
                       id="phone"
                       type="tel"
+                      disabled={saving}
                       placeholder="e.g. +1 234 567 8900"
                       {...register("phone", { required: "Phone is required" })}
                       className={`${errors.phone ? "border-destructive" : ""}`}
@@ -257,6 +274,7 @@ export default function StoreDetailsPage({ id }: { id: string }) {
                     <Label htmlFor="currency">Currency</Label>
                     <Input
                       id="currency"
+                      disabled={saving}
                       placeholder="USD"
                       {...register("currency", {
                         required: "Currency is required",
@@ -364,6 +382,78 @@ export default function StoreDetailsPage({ id }: { id: string }) {
                 </Button>
               </div>
             </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export function StoreDetailsSkeleton() {
+  return (
+    <div className="p-6 space-y-8">
+      {/* Page Header */}
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-64" /> {/* Title */}
+        <Skeleton className="h-4 w-80" /> {/* Subtitle */}
+      </div>
+
+      {/* Main Card */}
+      <Card>
+        <CardContent className="space-y-8">
+          {/* Tabs */}
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className="flex gap-4 border-b mb-6">
+              <TabsTrigger value="details">
+                <Skeleton className="h-5 w-16" />
+              </TabsTrigger>
+              <TabsTrigger value="users">
+                <Skeleton className="h-5 w-20" />
+              </TabsTrigger>
+              <TabsTrigger value="invites">
+                <Skeleton className="h-5 w-20" />
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Details Tab Skeleton */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex flex-col gap-2.5">
+                  <Skeleton className="h-4 w-32" /> {/* Label */}
+                  <Skeleton className="h-10 w-full" /> {/* Input */}
+                </div>
+              ))}
+              <div className="md:col-span-2 flex justify-end">
+                <Skeleton className="h-10 w-40" /> {/* Save Button */}
+              </div>
+            </div>
+
+            {/* Users Tab Skeleton */}
+            <div className="space-y-4 mt-6">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-40" /> {/* Name */}
+                    <Skeleton className="h-4 w-32" /> {/* Email */}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-[140px]" /> {/* Role Select */}
+                    <Skeleton className="h-10 w-10 rounded-md" />{" "}
+                    {/* Delete Btn */}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Invites Tab Skeleton */}
+            <div className="flex gap-3 mt-6">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-32" />
+            </div>
           </Tabs>
         </CardContent>
       </Card>
