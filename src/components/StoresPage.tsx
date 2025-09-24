@@ -83,9 +83,9 @@ type StoreItem = {
 };
 
 export default function StoresPage() {
-  const setActiveStore = useStore((s: any) => s.setActiveStore);
-  const getActiveStore = useStore((s) => s.getActiveStore);
+  const { getActiveStore, setActiveStore } = useStore();
   const store = getActiveStore();
+  const [open, setOpen] = useState(false);
 
   const [stores, setStores] = useState<StoreItem[]>([]);
   // const [loading, setLoading] = useState<boolean>(true);
@@ -143,26 +143,24 @@ export default function StoresPage() {
     currentPage * itemsPerPage
   );
 
-  // Quick actions (replace with real API calls)
-  async function handleSwitchStore(store: StoreItem) {
-    try {
-      // Optionally call backend to set session store
-      setActiveStore?.(store);
-      toast.success(`Switched to ${store?.name}`);
-    } catch (err: any) {
-      toast.error(err?.message || "Could not switch store");
-    }
+  // Handle switch stores
+  function handleSwitchStore(s: StoreItem) {
+    setActiveStore({
+      store_id: s?.id,
+      currency: s?.currency as string,
+      location: s?.location as string,
+      store_name: s?.name as string,
+      business_id: store?.business_id as string,
+      business_name: store?.business_name as string,
+    });
+    toast.success(`Switched to ${s?.name}`);
   }
 
   async function handleDeleteStore(store: StoreItem) {
-    if (!confirm(`Delete "${store.name}"? This action is irreversible.`))
-      return;
+    setOpen(true);
+
     try {
-      // TODO: replace with real DELETE call
-      const res = await fetch(`/api/stores/${store.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
-      setStores((prev) => prev.filter((s) => s.id !== store.id));
-      setOpenStore(null);
+      setOpen(true);
       toast.success(`${store.name} removed`);
     } catch (err: any) {
       toast.error(err?.message || "Delete failed");
@@ -420,13 +418,8 @@ export default function StoresPage() {
                     </div>
 
                     <div className="mt-4 md:mt-0 flex flex-col md:flex-row gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleSwitchStore(store)}
-                      >
-                        Switch Store
-                      </Button>
-                      <AlertDialog>
+                      <Button size="sm">Switch Store</Button>
+                      <AlertDialog open={open}>
                         <AlertDialogTrigger asChild>
                           <Button
                             size="sm"
@@ -471,7 +464,10 @@ export default function StoresPage() {
                             <AlertDialogCancel asChild>
                               <Button variant="outline">Cancel</Button>
                             </AlertDialogCancel>
-                            <AlertDialogAction asChild>
+                            <AlertDialogAction
+                              asChild
+                              onClick={() => handleDeleteStore(store)}
+                            >
                               <Button
                                 variant="destructive"
                                 className="font-semibold px-6"
