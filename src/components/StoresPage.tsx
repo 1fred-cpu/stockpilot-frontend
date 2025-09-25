@@ -65,6 +65,7 @@ import {
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
 import Image from "next/image";
+import Spinner from "./Spinner";
 type StoreItem = {
   id: string;
   name: string;
@@ -85,7 +86,8 @@ type StoreItem = {
 export default function StoresPage() {
   const { getActiveStore, setActiveStore } = useStore();
   const store = getActiveStore();
-  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [open, setOpen] = useState<boolean>(false);
 
   const [stores, setStores] = useState<StoreItem[]>([]);
   // const [loading, setLoading] = useState<boolean>(true);
@@ -157,13 +159,31 @@ export default function StoresPage() {
   }
 
   async function handleDeleteStore(store: StoreItem) {
-    setOpen(true);
+    if (stores?.length === 1) {
+      toast.error("One store need to be active");
+      setOpen(false);
+      return;
+    }
+    const toastId = toast.loading(`Deleting ${store?.name}`);
 
     try {
-      setOpen(true);
-      toast.success(`${store.name} removed`);
+      setLoading(true);
+
+      const response = await axiosInstance.delete(`/stores/${store?.id}`);
+      if (response.data?.status === 200 || response.data) {
+        toast.success(`${store?.name} removed successfully`, {
+          id: toastId,
+        });
+        setOpen(false); // ✅ close dialog
+        refetch();
+      }
+      toast.success(`${store.name} removed`); // ✅ notify
     } catch (err: any) {
-      toast.error(err?.message || "Delete failed");
+      toast.error("Failed to delete store", {
+        id: toastId,
+      });
+    } finally {
+      setLoading(false); // ✅ make sure loading is reset
     }
   }
 
@@ -322,7 +342,7 @@ export default function StoresPage() {
             </div>
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-              {paginated?.map((store: any) => (
+              {paginated?.map((store: any, index: number) => (
                 <div
                   key={store?.id}
                   className={`border rounded-md p-4 flex flex-col justify-between transition ${
@@ -418,8 +438,13 @@ export default function StoresPage() {
                     </div>
 
                     <div className="mt-4 md:mt-0 flex flex-col md:flex-row gap-2">
-                      <Button size="sm">Switch Store</Button>
-                      <AlertDialog open={open}>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSwitchStore(store)}
+                      >
+                        Switch Store
+                      </Button>
+                      <AlertDialog open={open} onOpenChange={setOpen}>
                         <AlertDialogTrigger asChild>
                           <Button
                             size="sm"
@@ -430,12 +455,14 @@ export default function StoresPage() {
                             Delete Store
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent className="max-w-md rounded-2xl shadow-lg">
+
+                        <AlertDialogContent className="max-w-md rounded-md shadow-lg">
                           <div className="space-y-4">
                             <AlertDialogTitle className="text-lg font-semibold text-red-600 flex items-center gap-2">
                               <Trash2 className="w-5 h-5 text-red-600" />
                               Delete Store
                             </AlertDialogTitle>
+
                             <p className="text-sm text-muted-foreground leading-relaxed">
                               Are you absolutely sure you want to{" "}
                               <span className="font-medium text-red-600">
@@ -445,6 +472,7 @@ export default function StoresPage() {
                               <span className="font-semibold">permanent</span>{" "}
                               and will:
                             </p>
+
                             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
                               <li>
                                 Delete all products belonging to this store
@@ -452,6 +480,7 @@ export default function StoresPage() {
                               <li>Remove associated users and roles</li>
                               <li>Erase store-specific settings and data</li>
                             </ul>
+
                             <p className="text-sm text-muted-foreground">
                               Once deleted,{" "}
                               <span className="font-semibold">
@@ -460,21 +489,24 @@ export default function StoresPage() {
                               .
                             </p>
                           </div>
+
                           <div className="flex justify-end gap-3 mt-6">
-                            <AlertDialogCancel asChild>
+                            <AlertDialogCancel asChild disabled={loading}>
                               <Button variant="outline">Cancel</Button>
                             </AlertDialogCancel>
-                            <AlertDialogAction
-                              asChild
+
+                            {/* Use a plain Button instead of AlertDialogAction to control closing manually */}
+                            <Button
                               onClick={() => handleDeleteStore(store)}
+                              variant="destructive"
+                              className="font-semibold px-6"
+                              disabled={loading}
                             >
-                              <Button
-                                variant="destructive"
-                                className="font-semibold px-6"
-                              >
-                                Yes, Delete Store
-                              </Button>
-                            </AlertDialogAction>
+                              {loading && (
+                                <Spinner color="oklch(0.637 0.237 25.331)" />
+                              )}
+                              {loading ? "Deleting..." : "Yes, Delete Store"}
+                            </Button>
                           </div>
                         </AlertDialogContent>
                       </AlertDialog>

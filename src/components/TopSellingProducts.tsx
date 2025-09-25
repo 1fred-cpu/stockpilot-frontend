@@ -36,7 +36,7 @@ export default function TopSellingProducts() {
   async function fetchTopSellingProducts() {
     try {
       const response = await axiosInstance.get(
-        `/analytics/top-selling-products/${store?.store_id}`
+        `/analytics/top-selling-products/${store?.storeId}`
       );
       return response.data;
     } catch (error) {
@@ -45,9 +45,9 @@ export default function TopSellingProducts() {
   }
 
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: ["top-selling-products", store?.store_id],
+    queryKey: ["top-selling-products", store?.storeId],
     queryFn: fetchTopSellingProducts,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
     refetchOnWindowFocus: false,
   });
 

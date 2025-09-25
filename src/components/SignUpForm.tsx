@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 
 import useStore from "../../utils/zustand";
 import axiosInstance from "../../utils/axiosInstance";
+import Spinner from "./Spinner";
 
 // ✅ Zod schema for validation
 const signUpSchema = z.object({
@@ -65,50 +66,73 @@ export default function SignUpForm() {
   }
 
   async function onSubmit(formData: SignUpFormData) {
+    const toastId = toast.loading("Signing up...");
     try {
       setLoading(true);
 
-      // ----------------- 1️⃣ Backend user creation -----------------
-      const response = await axiosInstance.post("/auth/signup", {
-        name: `${capitalizeWords(
-          `${formData.firstName} ${formData.lastName}`
-        )}`,
-        email: formData.email,
-      });
-      const backendUser = response.data.user;
-
-      // Update local state
-      setUser({
-        id: backendUser.id,
-        name: backendUser.name,
-        email: backendUser.email,
-        role: backendUser.role,
-        business_id: backendUser.business_id,
-      });
-
-      // ----------------- 2️⃣ Supabase signup -----------------
+      // ----------------- 1️⃣ Supabase signup first -----------------
       const { data: supaUser, error: supaError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
+
         options: {
-          emailRedirectTo: "http://localhost:3000/business/register", // redirect after verification
+          emailRedirectTo: "http://localhost:3000/business/register",
         },
       });
 
       if (supaError) {
-        // ----------------- 3️⃣ Rollback backend user if Supabase fails -----------------
-        try {
-          await axiosInstance.delete(`/users/${backendUser.id}`);
-          clearAppStore();
-        } catch (rollbackError) {
-          console.error("Rollback failed:", rollbackError);
+        // Supabase conflict → don’t create backend user
+        if (
+          supaError.code === "conflict" ||
+          supaError.status === 422 ||
+          supaError.status === 409
+        ) {
+          toast.error("This email is already registered.", { id: toastId });
+        } else {
+          toast.error(supaError.message ?? "Supabase signup failed", {
+            id: toastId,
+          });
         }
+        return; // stop execution
+      }
 
-        throw supaError; // Let outer catch handle toast
+      // ----------------- 2️⃣ Backend user creation -----------------
+      let backendUser;
+      try {
+        const response = await axiosInstance.post("/auth/signup", {
+          userId: supaUser.user?.id,
+          name: `${capitalizeWords(
+            `${formData.firstName} ${formData.lastName}`
+          )}`,
+          email: formData.email,
+        });
+
+        backendUser = response.data.user;
+
+        // Update local state
+        setUser({
+          id: backendUser.id,
+          name: backendUser.name,
+          email: backendUser.email,
+          role: backendUser.role,
+          businessId: backendUser.business_id,
+        });
+      } catch (backendError) {
+        // ----------------- 3️⃣ Rollback Supabase user if backend fails -----------------
+        try {
+          if (supaUser?.user?.id) {
+            await supabase.auth.admin.deleteUser(supaUser.user.id);
+          }
+        } catch (rollbackError) {
+          console.error("Supabase rollback failed:", rollbackError);
+        }
+        throw backendError; // bubble up
       }
 
       // ----------------- 4️⃣ Success -----------------
-      toast.success("Account created! Check your email to verify.");
+      toast.success("Account created! Check your email to verify.", {
+        id: toastId,
+      });
       window.localStorage.setItem("step", "VERIFY");
       router.push("/auth/verify");
     } catch (error: any) {
@@ -117,17 +141,27 @@ export default function SignUpForm() {
         const status = error.response.status;
 
         if (status === 429) {
-          toast.error("Rate limit exceeded. Please try again later.");
+          toast.error("Rate limit exceeded. Please try again later.", {
+            id: toastId,
+          });
         } else if (status === 409) {
-          toast.error("Conflict occurred. Email or resource already exists.");
+          toast.error("Conflict occurred. Email or resource already exists.", {
+            id: toastId,
+          });
         } else if (status === 500) {
-          toast.error(error.response.data?.message ?? "Server error");
+          toast.error(error.response.data?.message ?? "Server error", {
+            id: toastId,
+          });
         } else {
-          toast.error(error.response.data?.message ?? error.message);
+          toast.error(error.response.data?.message ?? error.message, {
+            id: toastId,
+          });
         }
       } else {
         // Supabase errors or network issues
-        toast.error(error.message ?? "Unexpected error occurred");
+        toast.error(error.message ?? "Unexpected error occurred", {
+          id: toastId,
+        });
       }
     } finally {
       setLoading(false);
@@ -297,7 +331,8 @@ export default function SignUpForm() {
         >
           {loading ? (
             <>
-              <ClipLoader size={18} color="#ffffff" /> Creating account
+              <Spinner />
+              Creating account
             </>
           ) : (
             "Create account"

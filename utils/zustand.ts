@@ -3,13 +3,13 @@ import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
 interface Store {
-  store_id: string;
-  store_name: string;
-  business_id: string;
-  business_name: string;
+  storeId: string;
+  storeName: string;
+  businessId: string;
+  businessName: string;
   location: string;
   currency: string;
-  is_default: boolean;
+  isDefault: boolean;
 }
 
 interface User {
@@ -17,22 +17,23 @@ interface User {
   name: string;
   email: string;
   role: string;
-  business_id: string;
+  businessId: string;
 }
 
 interface ActiveStore {
-  store_id: string;
-  business_id: string;
-  store_name: string;
+  storeId: string;
+  businessId: string;
+  storeName: string;
   currency: string;
   location: string;
-  business_name: string;
+  businessName: string;
+  address: string;
 }
 
 interface AppStore {
   user: User | null;
   stores: Store[];
-  active_store: ActiveStore | null;
+  activeStore: ActiveStore | null;
 }
 
 interface UseStore {
@@ -45,7 +46,7 @@ interface UseStore {
   // Helpers
   setUser: (user: User | null) => void;
   setStores: (stores: Store[]) => void;
-  setActiveStore: (active_store: ActiveStore | null) => void;
+  setActiveStore: (activeStore: ActiveStore | null) => void;
 
   // Selectors
   getActiveStore: () => Store | null;
@@ -57,7 +58,7 @@ interface UseStore {
 const initialAppStore: AppStore = {
   user: null,
   stores: [],
-  active_store: null,
+  activeStore: null,
 };
 
 const useStore = create<UseStore>()(
@@ -88,18 +89,18 @@ const useStore = create<UseStore>()(
           state.appStore.stores = stores;
         }),
 
-      setActiveStore: (active_store) =>
+      setActiveStore: (activeStore) =>
         set((state) => {
-          state.appStore.active_store = active_store;
+          state.appStore.activeStore = activeStore;
         }),
 
       // ✅ Selector: Get currently active store object
       getActiveStore: () => {
         const { appStore } = get();
-        if (!appStore.active_store) return null;
+        if (!appStore.activeStore) return null;
         return (
           appStore.stores.find(
-            (s) => s.store_id === appStore.active_store?.store_id
+            (s) => s.storeId === appStore.activeStore?.storeId
           ) ?? null
         );
       },
@@ -107,7 +108,7 @@ const useStore = create<UseStore>()(
       // ✅ Computed selectors
       isLoggedIn: () => !!get().appStore.user,
       hasStores: () => get().appStore.stores.length > 0,
-      activeStoreName: () => get().getActiveStore()?.store_name ?? null,
+      activeStoreName: () => get().getActiveStore()?.storeName ?? null,
     })),
     {
       name: "app-store", // localStorage key

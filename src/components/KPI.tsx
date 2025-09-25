@@ -20,7 +20,7 @@ export default function KPI() {
 
   async function fetchKPIData() {
     try {
-      const response = await axiosInstance(`/analytics/kpi/${store?.store_id}`);
+      const response = await axiosInstance(`/analytics/kpi/${store?.storeId}`);
       return response.data;
     } catch (error) {
       throw error;
@@ -28,9 +28,9 @@ export default function KPI() {
   }
 
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: ["kpiData", store?.store_id],
+    queryKey: ["kpiData", store?.storeId],
     queryFn: fetchKPIData,
-    enabled: !!store?.store_id, // Only run the query if storeId is available
+    enabled: !!store?.storeId, // Only run the query if storeId is available
   });
 
   if (isLoading) {

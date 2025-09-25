@@ -34,7 +34,7 @@ export default function InventoryStatus() {
   async function fetchInventoryStatus() {
     try {
       const response = await axiosInstance.get(
-        `/analytics/inventory-status/${store?.store_id}`
+        `/analytics/inventory-status/${store?.storeId}`
       );
       return response.data;
     } catch (error) {
@@ -44,14 +44,14 @@ export default function InventoryStatus() {
 
   function handleRetry() {
     queryClient.invalidateQueries({
-      queryKey: ["inventory-status", store?.store_id],
+      queryKey: ["inventory-status", store?.storeId],
     });
   }
 
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: ["inventry-status", store?.store_id],
+    queryKey: ["inventry-status", store?.storeId],
     queryFn: fetchInventoryStatus,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
   });
 
   const inventoryData = data ?? [];

@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
@@ -23,19 +22,23 @@ import { redirect, useRouter } from "next/navigation";
 import { ClipLoader } from "react-spinners";
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "sonner";
+import Spinner from "./Spinner";
 
 // ✅ Schema with correct File validation
 const registerBusinessSchema = z.object({
-  business_name: z.string().min(2, "Business name is required"),
-  store_name: z.string().min(2, "Store name is required"),
+  businessName: z.string().min(2, "Business name is required"),
+  storeName: z.string().min(2, "Store name is required"),
   currency: z.string().min(1, "Currency is required"),
   location: z.string().min(1, "Location is required"),
-  owner_name: z.string().min(2, "Owner name is required"),
-  email: z.string().email("Invalid email"),
-  phone: z.string().min(6, "Invalid phone number"),
+  address: z.string().min(1, "Address is required"),
+  ownerName: z.string().min(2, "Owner name is required"),
+  businessEmail: z.string().email("Invalid business email"),
+  storeEmail: z.string().email("Invalid store email"),
+  businessPhone: z.string().min(6, "Invalid business phone number"),
+  storePhone: z.string().min(6, "Invalid store phone number"),
   website: z.string().optional(),
-  image_file: z
-    .custom<File>((val) => val instanceof File, {
+  imageFile: z
+    .custom<File | null>((val) => (val instanceof File ? File : null), {
       message: "Logo image file is required",
     })
     .transform((val) => val),
@@ -46,7 +49,7 @@ type RegisterBusinessForm = z.infer<typeof registerBusinessSchema>;
 export default function RegisterBusinessPage() {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
-  const { appStore, setAppStore } = useStore();
+  const { appStore, setActiveStore } = useStore();
   const router = useRouter();
 
   const {
@@ -59,14 +62,14 @@ export default function RegisterBusinessPage() {
   });
 
   const onSubmit = async (formData: RegisterBusinessForm) => {
+    const toastId = toast.loading("Registering your business");
     try {
       setLoading(true);
-      console.log(formData);
 
       const response = await axiosInstance.post(
         "/businesses/register",
         {
-          owner_user_id: appStore.user?.id,
+          ownerUserId: appStore.user?.id,
           ...formData,
         },
         {
@@ -77,23 +80,30 @@ export default function RegisterBusinessPage() {
       );
       const data = response.data;
 
-      setAppStore({
-        stores: data.stores,
-        active_store: data.active_store,
+      setActiveStore(data?.activeStore);
+      toast.success("Business registered successfully", {
+        id: toastId,
       });
-
       router.push("/dashboard/overview");
     } catch (error: any) {
       const status = error.response.data.statusCode;
 
       if (status === 409) {
-        toast.error(error.response.data.message);
+        toast.error(error.response.data.message, {
+          id: toastId,
+        });
       } else if (status === 404) {
-        toast.error(error.response.data.message);
+        toast.error(error.response.data.message, {
+          id: toastId,
+        });
       } else if (status === 500) {
-        toast.error(error.response.data.message);
+        toast.error(error.response.data.message, {
+          id: toastId,
+        });
       } else {
-        toast.error(error.response.data.message || error.message);
+        toast.error(error.response.data.message || error.message, {
+          id: toastId,
+        });
       }
     } finally {
       setLoading(false);
@@ -108,8 +118,9 @@ export default function RegisterBusinessPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[url('/images/black-woman-running-small-business.jpg')] bg-cover bg-no-repeat bg-center">
+    <div className="min-h-screen flex items-center justify-center bg-[url('/images/black-woman-running-small-business.jpg')] bg-cover bg-no-repeat bg-center relative">
       <div className="w-full max-w-3xl p-4">
+        <div className="inset-0 backdrop-blur-sm absolute" />
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -137,32 +148,70 @@ export default function RegisterBusinessPage() {
                     <Label>Business Name</Label>
                     <Input
                       placeholder="e.g. Luxeline Ltd."
-                      {...register("business_name")}
+                      {...register("businessName")}
                       className={
-                        errors.business_name ? "border-destructive" : ""
+                        errors.businessName ? "border-destructive" : ""
                       }
                     />
-                    {errors.business_name && (
+                    {errors.businessName && (
                       <p className="text-sm text-destructive">
-                        {errors.business_name.message}
+                        {errors.businessName.message}
                       </p>
                     )}
                   </div>
 
+                  {/** Business Email */}
+                  <div className="flex flex-col gap-2.5">
+                    <Label>Business Email</Label>
+                    <Input
+                      placeholder="e.g. techsolutions@example.com"
+                      {...register("businessEmail")}
+                      className={
+                        errors.businessEmail ? "border-destructive" : ""
+                      }
+                    />
+                    {errors.businessEmail && (
+                      <p className="text-sm text-destructive">
+                        {errors.businessEmail.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/** Business Phone */}
+                  <div className="flex flex-col gap-2.5">
+                    <Label>Business Phone</Label>
+                    <Input
+                      placeholder="e.g. +233550097593"
+                      {...register("businessPhone")}
+                      type="tel"
+                      pattern="^\+?[1-9]\d{6,14}$"
+                      className={
+                        errors.businessPhone ? "border-destructive" : ""
+                      }
+                    />
+                    {errors.businessPhone && (
+                      <p className="text-sm text-destructive">
+                        {errors.businessPhone.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/** Store info */}
+                  {/** Store name */}
                   <div className="flex flex-col gap-2.5">
                     <Label>Store Name</Label>
                     <Input
                       placeholder="e.g. Luxeline Store"
-                      {...register("store_name")}
-                      className={errors.store_name ? "border-destructive" : ""}
+                      {...register("storeName")}
+                      className={errors.storeName ? "border-destructive" : ""}
                     />
-                    {errors.store_name && (
+                    {errors.storeName && (
                       <p className="text-sm text-destructive">
-                        {errors.store_name.message}
+                        {errors.storeName.message}
                       </p>
                     )}
                   </div>
-
+                  {/** Currency */}
                   <div className="flex flex-col gap-2.5">
                     <Label>Currency</Label>
                     <Input
@@ -176,6 +225,7 @@ export default function RegisterBusinessPage() {
                       </p>
                     )}
                   </div>
+                  {/** Location */}
 
                   <div className="flex flex-col gap-2.5">
                     <Label>Location</Label>
@@ -192,47 +242,64 @@ export default function RegisterBusinessPage() {
                   </div>
                 </div>
 
-                {/* Owner info */}
+                {/** Address */}
+
+                <div className="flex flex-col gap-2.5">
+                  <Label>Address</Label>
+                  <Input
+                    placeholder="e.g. 123 street markway"
+                    {...register("address")}
+                    className={errors.address ? "border-destructive" : ""}
+                  />
+                  {errors.address && (
+                    <p className="text-sm text-destructive">
+                      {errors.address.message}
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-2.5">
                     <Label>Owner Name</Label>
                     <Input
                       placeholder="e.g. John Doe"
-                      {...register("owner_name")}
-                      className={errors.owner_name ? "border-destructive" : ""}
+                      {...register("ownerName")}
+                      className={errors.ownerName ? "border-destructive" : ""}
                     />
-                    {errors.owner_name && (
+                    {errors.ownerName && (
                       <p className="text-sm text-destructive">
-                        {errors.owner_name.message}
+                        {errors.ownerName.message}
                       </p>
                     )}
                   </div>
 
                   <div className="flex flex-col gap-2.5">
-                    <Label>Email</Label>
+                    <Label>Store Email</Label>
                     <Input
                       type="email"
-                      placeholder="owner@email.com"
-                      {...register("email")}
-                      className={errors.email ? "border-destructive" : ""}
+                      placeholder="eg. techsolutionsaccra@example.com"
+                      {...register("storeEmail")}
+                      className={errors.storeEmail ? "border-destructive" : ""}
                     />
-                    {errors.email && (
+                    {errors.storeEmail && (
                       <p className="text-sm text-destructive">
-                        {errors.email.message}
+                        {errors.storeEmail.message}
                       </p>
                     )}
                   </div>
 
                   <div className="flex flex-col gap-2.5">
-                    <Label>Phone</Label>
+                    <Label>Store Phone</Label>
                     <Input
-                      placeholder="e.g. +233 55 123 4567"
-                      {...register("phone")}
-                      className={errors.phone ? "border-destructive" : ""}
+                      placeholder="e.g. +233551234567"
+                      {...register("storePhone")}
+                      className={errors.storePhone ? "border-destructive" : ""}
+                      pattern="^\+?[1-9]\d{6,14}$"
+                      type="tel"
                     />
-                    {errors.phone && (
+                    {errors.storePhone && (
                       <p className="text-sm text-destructive">
-                        {errors.phone.message}
+                        {errors.storePhone.message}
                       </p>
                     )}
                   </div>
@@ -250,7 +317,7 @@ export default function RegisterBusinessPage() {
                 <div className="flex flex-col gap-2.5">
                   <Label>Business Logo</Label>
                   <Controller
-                    name="image_file"
+                    name="imageFile"
                     control={control}
                     render={({ field }) => (
                       <Label htmlFor="file">
@@ -266,7 +333,7 @@ export default function RegisterBusinessPage() {
                           }}
                           className={cn(
                             "flex flex-col items-center gap-2 justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50/50 overflow-hidden",
-                            errors.image_file && "border-destructive"
+                            errors.imageFile && "border-destructive"
                           )}
                         >
                           {preview ? (
@@ -302,9 +369,9 @@ export default function RegisterBusinessPage() {
                       </Label>
                     )}
                   />
-                  {errors.image_file && (
+                  {errors.imageFile && (
                     <p className="text-sm text-destructive text-center">
-                      {errors.image_file.message}
+                      {errors.imageFile.message}
                     </p>
                   )}
                 </div>
@@ -313,7 +380,7 @@ export default function RegisterBusinessPage() {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (
                     <>
-                      <ClipLoader size={18} color="#ffffff" />
+                      <Spinner />
                       Creating Business...
                     </>
                   ) : (

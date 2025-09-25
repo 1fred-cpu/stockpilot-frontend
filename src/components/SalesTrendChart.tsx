@@ -40,7 +40,7 @@ export default function SalesTrendLast30DaysChart() {
   async function fetchSalesTrend30Days() {
     try {
       const response = await axiosInstance.get(
-        `/analytics/sales-trend/last-30-days/${store?.store_id}`
+        `/analytics/sales-trend/last-30-days/${store?.storeId}`
       );
       return response.data;
     } catch (error) {
@@ -49,9 +49,9 @@ export default function SalesTrendLast30DaysChart() {
   }
 
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: ["sales-trend", store?.store_id],
+    queryKey: ["sales-trend", store?.storeId],
     queryFn: fetchSalesTrend30Days,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
   });
 
   if (isLoading) {

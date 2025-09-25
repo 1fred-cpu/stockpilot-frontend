@@ -91,7 +91,7 @@ export default function RecentTransactions() {
   async function fetchRecentTransaction() {
     try {
       const response = await axiosInstance.get(
-        `/analytics/sales-latest/${store?.store_id}`
+        `/analytics/sales-latest/${store?.storeId}`
       );
       return response.data;
     } catch (error) {
@@ -101,14 +101,14 @@ export default function RecentTransactions() {
 
   function handleRetry() {
     queryClient.invalidateQueries({
-      queryKey: ["sales-latest", store?.store_id],
+      queryKey: ["sales-latest", store?.storeId],
     });
   }
 
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: ["sales-latest", store?.store_id],
+    queryKey: ["sales-latest", store?.storeId],
     queryFn: fetchRecentTransaction,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
   });
 
   const recentTransactions = data ?? [];

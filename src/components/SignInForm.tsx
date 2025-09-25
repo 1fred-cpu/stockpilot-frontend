@@ -22,6 +22,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 import { supabase } from "../../utils/supabase";
+import Spinner from "./Spinner";
 
 // ✅ Validation schema with Zod
 const SignInSchema = z.object({
@@ -90,7 +91,7 @@ export default function SignInForm() {
             name: data.name,
             email,
             role: data.role,
-            business_id: data.user.business_id,
+            businessId: data.user.business_id,
           },
         });
 
@@ -111,7 +112,7 @@ export default function SignInForm() {
             name: data.user.name,
             email: data.user.email,
             role: data.user.role,
-            business_id: data.user.business_id,
+            businessId: data.user.business_id,
           },
         });
 
@@ -126,7 +127,7 @@ export default function SignInForm() {
             name: data.user.name,
             email: data.user.email,
             role: data.user.role,
-            business_id: data.user.business_id,
+            businessId: data.user.business_id,
           },
         });
 
@@ -140,10 +141,10 @@ export default function SignInForm() {
             name: data.user.name,
             email: data.user.email,
             role: data.user.role,
-            business_id: data.user.business_id,
+            businessId: data.user.business_id,
           },
           stores: data.stores,
-          active_store: data.active_store,
+          activeStore: data.activeStore,
         });
         router.push("/dashboard/overview");
       }
@@ -237,7 +238,7 @@ export default function SignInForm() {
         >
           {loading ? (
             <>
-              <ClipLoader size={18} color="#ffffff" /> Sigining in
+              <Spinner /> Sigining in
             </>
           ) : (
             "Sign in"

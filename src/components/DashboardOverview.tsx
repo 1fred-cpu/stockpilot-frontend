@@ -14,7 +14,7 @@ export default function DashboardOverview() {
     <div className="p-6 space-y-6 ">
       {/* Page Header */}
       <PageHeader
-        title={`Welcome Back, ${store?.store_name}`}
+        title={`Welcome Back, ${store?.storeName}`}
         subtitle="Here's what's happening with your store today."
       />
 

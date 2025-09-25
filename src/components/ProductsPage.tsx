@@ -68,7 +68,7 @@ export default function ProductsPage() {
   async function fetchProducts() {
     try {
       const response = await axiosInstance.get(
-        `businesses/stores/${store?.store_id}/products`
+        `businesses/stores/${store?.storeId}/products`
       );
       return response.data;
     } catch (error) {
@@ -78,7 +78,7 @@ export default function ProductsPage() {
   async function fetchCategories() {
     try {
       const response = await axiosInstance.get(
-        `businesses/stores/${store?.store_id}/categories`
+        `businesses/stores/${store?.storeId}/categories`
       );
       return response.data;
     } catch (error) {
@@ -90,11 +90,11 @@ export default function ProductsPage() {
     try {
       setLoading(true);
       const response = await axiosInstance.delete(
-        `/businesses/${store?.business_id}/products/${productId}`
+        `/businesses/${store?.businessId}/products/${productId}`
       );
       if (response.data) {
         queryClient.invalidateQueries({
-          queryKey: ["products", store?.store_id],
+          queryKey: ["products", store?.storeId],
         });
 
         toast.success("Product deleted successfully");
@@ -108,13 +108,13 @@ export default function ProductsPage() {
   }
 
   function handleRetry() {
-    queryClient.invalidateQueries({ queryKey: ["products", store?.store_id] });
+    queryClient.invalidateQueries({ queryKey: ["products", store?.storeId] });
   }
 
   const { data, error, isLoading } = useQuery({
-    queryKey: ["products", store?.store_id],
+    queryKey: ["products", store?.storeId],
     queryFn: fetchProducts,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
   });
 
   const {
@@ -122,9 +122,9 @@ export default function ProductsPage() {
     error: categoriesError,
     isLoading: categoriesLoading,
   } = useQuery({
-    queryKey: ["categories", store?.store_id],
+    queryKey: ["categories", store?.storeId],
     queryFn: fetchCategories,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
   });
 
   const products = data?.products ?? [];

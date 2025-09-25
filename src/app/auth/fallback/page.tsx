@@ -56,8 +56,9 @@ export default function AuthCallback() {
               email: result.user.email,
               role: result.user.role,
               name: result.user.name,
-              business_id: result.user.business_id,
+              businessId: result.user.business_id,
             },
+            activeStore: result.activeStore,
           });
           router.replace("/business/register/");
         } else if (result.nextStep === "COMPLETED") {
@@ -67,10 +68,10 @@ export default function AuthCallback() {
               email: result.data.user.email,
               role: result.data.user.role,
               name: result.data.user.name,
-              business_id: result.data.user.business_id,
+              businessId: result.data.user.business_id,
             },
             stores: result.data.stores,
-            active_store: result.data.active_store,
+            activeStore: result.data.activeStore,
           });
           router.replace("/dashboard/overview");
         }

@@ -38,7 +38,7 @@ type Inventory = {
 interface Variant {
   id?: string;
   imageFile: File | null;
-  image_url?: string; // dataURL or blob URL for preview
+  imageUrl?: string; // dataURL or blob URL for preview
   name: string;
   price: number | string;
   inventory: Inventory;
@@ -53,7 +53,7 @@ interface ProductDto {
   description: string;
   thumbnail: string; // can be URL
   tags: string[];
-  product_variants: Variant[];
+  productVariants: Variant[];
 }
 
 /** --------------------------
@@ -63,7 +63,7 @@ const ONE_MB = 1 * 1024 * 1024;
 
 const initialVariant: Variant = {
   imageFile: null,
-  image_url: "",
+  imageUrl: "",
   name: "",
   price: "",
   inventory: {
@@ -106,7 +106,7 @@ export default function ProductDetailsPage({
     description?: string;
     category_type?: string;
     thumbnail?: string | null;
-    product_variants?: Array<{
+    productVariants?: Array<{
       name?: string;
       image?: string | null;
       sku?: string;
@@ -121,7 +121,7 @@ export default function ProductDetailsPage({
     description: "",
     category_type: "",
     thumbnail: null,
-    product_variants: [],
+    productVariants: [],
   });
 
   /** ------- Validation: set errors for missing fields ------- */
@@ -134,7 +134,7 @@ export default function ProductDetailsPage({
       description: "",
       category_type: "",
       thumbnail: null,
-      product_variants: [],
+      productVariants: [],
     };
 
     if (!product.name?.trim()) {
@@ -159,18 +159,18 @@ export default function ProductDetailsPage({
     }
 
     // Validate variants
-    if (!product.product_variants || product.product_variants.length === 0) {
+    if (!product.productVariants || product.productVariants.length === 0) {
       toast.error("At least one variant is required");
       valid = false;
     } else {
-      newErrors.product_variants = product.product_variants.map((v) => {
+      newErrors.productVariants = product.productVariants.map((v) => {
         const vErr: any = {};
         if (!v.name?.trim()) {
           vErr.name = "Name is required";
           valid = false;
         }
-        // Only require imageFile if creating a new variant (no id and no image_url)
-        if (!v.imageFile && !v.image_url) {
+        // Only require imageFile if creating a new variant (no id and no imageUrl)
+        if (!v.imageFile && !v.imageUrl) {
           vErr.image = "Variant image is required";
           valid = false;
         }
@@ -200,7 +200,7 @@ export default function ProductDetailsPage({
           valid = false;
         }
 
-        if (!v.imageFile && !v.image_url) {
+        if (!v.imageFile && !v.imageUrl) {
           vErr.image = "Variant image is required";
           valid = false;
         }
@@ -219,35 +219,35 @@ export default function ProductDetailsPage({
     const controller = new AbortController();
 
     async function fetchProduct() {
-      if (!store?.store_id || !productId) return; // wait for store
+      if (!store?.storeId || !productId) return; // wait for store
       setLoadingPage(true);
       try {
         const res = await axiosInstance.get(
-          `businesses/stores/${store.store_id}/products/${productId}`,
+          `businesses/stores/${store.storeId}/products/${productId}`,
           { signal: controller.signal }
         );
         const data: ProductDto = res.data?.product;
 
         setProduct({
           ...data,
-          product_variants: data?.product_variants?.map((v: any) => {
+          productVariants: data?.productVariants?.map((v: any) => {
             return {
               ...v,
               inventory: {
                 ...v.inventory,
-                lowQuantityThreshold: v.inventory.low_stock_quantity,
+                lowQuantityThreshold: v.inventory.lowQuantityThreshold,
               },
             };
           }),
         });
         setOriginal({
           ...data,
-          product_variants: data?.product_variants?.map((v: any) => {
+          productVariants: data?.productVariants?.map((v: any) => {
             return {
               ...v,
               inventory: {
                 ...v.inventory,
-                lowQuantityThreshold: v.inventory.low_stock_quantity,
+                lowQuantityThreshold: v.inventory.lowQuantityThreshold,
               },
             };
           }),
@@ -278,7 +278,7 @@ export default function ProductDetailsPage({
       blobUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
       blobUrlsRef.current = [];
     };
-  }, [store?.store_id, productId]);
+  }, [store?.storeId, productId]);
 
   /** ------- Handlers: product fields ------- */
   const handleChange = (
@@ -330,7 +330,7 @@ export default function ProductDetailsPage({
     setProduct((prev) => {
       if (!prev) return prev;
 
-      const updated = [...prev.product_variants];
+      const updated = [...prev.productVariants];
       const variant = { ...updated[idx] };
 
       // Ensure inventory exists
@@ -352,7 +352,7 @@ export default function ProductDetailsPage({
         updated[idx] = { ...variant };
       }
 
-      return { ...prev, product_variants: updated };
+      return { ...prev, productVariants: updated };
     });
   };
 
@@ -386,13 +386,13 @@ export default function ProductDetailsPage({
       reader.onloadend = () =>
         setProduct((prev) => {
           if (!prev) return prev;
-          const updated = [...prev.product_variants];
+          const updated = [...prev.productVariants];
           updated[idx] = {
             ...updated[idx],
             imageFile: file,
-            image_url: reader.result as string,
+            imageUrl: reader.result as string,
           };
-          return { ...prev, product_variants: updated };
+          return { ...prev, productVariants: updated };
         });
       reader.readAsDataURL(file);
     }
@@ -402,7 +402,7 @@ export default function ProductDetailsPage({
     if (!product) return;
     setProduct({
       ...product,
-      product_variants: [...product.product_variants, { ...initialVariant }],
+      productVariants: [...product.productVariants, { ...initialVariant }],
     });
   };
 
@@ -410,18 +410,18 @@ export default function ProductDetailsPage({
     if (!product) return;
 
     // Prevent from removing all variant, at least one is required
-    if (product.product_variants.length === 1) {
+    if (product.productVariants.length === 1) {
       toast.error("At least one variant is required");
       return;
     }
 
     setProduct({
       ...product,
-      product_variants: product.product_variants.filter((_, i) => i !== idx),
+      productVariants: product.productVariants.filter((_, i) => i !== idx),
     });
 
     // Add remove variant to variantsToDelete (only if it came from backend)
-    const variant = product.product_variants[idx];
+    const variant = product.productVariants[idx];
 
     if (variant?.id) {
       const alreadyAdded = variantsToDelete.some((v) => v.id === variant.id);
@@ -447,7 +447,7 @@ export default function ProductDetailsPage({
   };
 
   const handleSubmit = async () => {
-    if (!product || !store?.store_id) return;
+    if (!product || !store?.storeId) return;
 
     if (!validateAndSetErrors()) {
       return;
@@ -458,15 +458,15 @@ export default function ProductDetailsPage({
 
     // base fields
     formData.append("name", product.name);
-    formData.append("store_id", store.store_id);
-    formData.append("business_id", store.business_id);
+    formData.append("storeId", store.storeId);
+    formData.append("businessId", store.businessId);
     formData.append("brand", product.brand);
     formData.append("category", product.category_type);
     formData.append("description", product.description);
 
     // thumbnail (optional)
     if (thumbnailFile) {
-      formData.append("thumbnail_file", thumbnailFile);
+      formData.append("thumbnailFile", thumbnailFile);
     }
 
     // arrays/objects
@@ -475,7 +475,7 @@ export default function ProductDetailsPage({
     // Build variants with imageFileIndex if needed
     const filesToSend: File[] = [];
 
-    const variantsPayload = (product.product_variants || []).map((v) => {
+    const variantsPayload = (product.productVariants || []).map((v) => {
       // compute the file index in the compact files list
       let imageFileIndex: number | null = null;
       if (v.imageFile instanceof File) {
@@ -493,13 +493,13 @@ export default function ProductDetailsPage({
           reserved: v.inventory.reserved,
         },
         sku: v.sku,
-        image_url: v.image_url,
-        image_file_index: imageFileIndex, // <-- send the compact index
+        imageUrl: v.imageUrl,
+        imageFileIndex: imageFileIndex, // <-- send the compact index
       };
     });
 
     // metadata first
-    formData.append("product_variants", JSON.stringify(variantsPayload));
+    formData.append("productVariants", JSON.stringify(variantsPayload));
 
     // then the actual files, in the same compact order
     filesToSend.forEach((file) => {
@@ -513,7 +513,7 @@ export default function ProductDetailsPage({
 
     try {
       const res = await axiosInstance.patch(
-        `/businesses/stores/${store.store_id}/products/${product.id}`,
+        `/businesses/stores/${store.storeId}/products/${product.id}`,
         formData
       );
       const data = res.data.credentials.product;
@@ -522,7 +522,7 @@ export default function ProductDetailsPage({
       setProduct({
         ...data,
         tags: data.tags || [],
-        product_variants: data?.product_variants?.map((v: any) => ({
+        productVariants: data?.productVariants?.map((v: any) => ({
           ...v,
           inventory: {
             ...v.inventory,
@@ -533,7 +533,7 @@ export default function ProductDetailsPage({
       setOriginal({
         ...data,
         tags: data.tags || [],
-        product_variants: data?.product_variants?.map((v: any) => ({
+        productVariants: data?.productVariants?.map((v: any) => ({
           ...v,
           inventory: {
             ...v.inventory,
@@ -568,8 +568,8 @@ export default function ProductDetailsPage({
     const { name } = e.target;
     setErrors((prev) => ({
       ...prev,
-      product_variants: prev.product_variants
-        ? prev.product_variants.map((err, i) =>
+      productVariants: prev.productVariants
+        ? prev.productVariants.map((err, i) =>
             i === idx ? { ...err, [name]: "" } : err
           )
         : [],
@@ -829,8 +829,8 @@ export default function ProductDetailsPage({
               type="multiple"
               className="mt-2 border px-3 py-2 rounded-md"
             >
-              {product.product_variants
-                ? product.product_variants.map((variant, idx) => (
+              {product.productVariants
+                ? product.productVariants.map((variant, idx) => (
                     <AccordionItem key={idx} value={`variant-${idx}`}>
                       <AccordionTrigger className="cursor-pointer px-3">
                         <div className="flex items-center gap-3 text-left">
@@ -855,12 +855,12 @@ export default function ProductDetailsPage({
                               placeholder="Name"
                               title="Name"
                               className={`${
-                                errors?.product_variants?.[idx]?.name
+                                errors?.productVariants?.[idx]?.name
                                   ? "border-destructive"
                                   : ""
                               }`}
                             />
-                            {errors?.product_variants?.[idx]?.name && (
+                            {errors?.productVariants?.[idx]?.name && (
                               <p className="text-sm text-destructive">
                                 Name is required
                               </p>
@@ -890,7 +890,7 @@ export default function ProductDetailsPage({
                               onChange={(e) => handleVariantChange(idx, e)}
                               onFocus={(e) => handleVariantOnFocusInput(e, idx)}
                               className={`${
-                                errors?.product_variants?.[idx]?.quantity
+                                errors?.productVariants?.[idx]?.quantity
                                   ? "border-destructive"
                                   : ""
                               }`}
@@ -899,7 +899,7 @@ export default function ProductDetailsPage({
                               title="Quantity"
                               disabled={variant?.id ? true : false}
                             />
-                            {errors?.product_variants?.[idx]?.quantity && (
+                            {errors?.productVariants?.[idx]?.quantity && (
                               <p className="text-sm text-destructive">
                                 Quantity is required
                               </p>
@@ -915,7 +915,7 @@ export default function ProductDetailsPage({
                               onChange={(e) => handleVariantChange(idx, e)}
                               onFocus={(e) => handleVariantOnFocusInput(e, idx)}
                               className={`${
-                                errors?.product_variants?.[idx]?.price
+                                errors?.productVariants?.[idx]?.price
                                   ? "border-destructive"
                                   : ""
                               }`}
@@ -924,7 +924,7 @@ export default function ProductDetailsPage({
                               step={0.01}
                               title="Price"
                             />
-                            {errors?.product_variants?.[idx]?.price && (
+                            {errors?.productVariants?.[idx]?.price && (
                               <p className="text-sm text-destructive">
                                 Price is required
                               </p>
@@ -955,7 +955,7 @@ export default function ProductDetailsPage({
                               onChange={(e) => handleVariantChange(idx, e)}
                               onFocus={(e) => handleVariantOnFocusInput(e, idx)}
                               className={`${
-                                errors?.product_variants?.[idx]
+                                errors?.productVariants?.[idx]
                                   ?.lowQuantityThreshold
                                   ? "border-destructive"
                                   : ""
@@ -964,7 +964,7 @@ export default function ProductDetailsPage({
                               min={0}
                               title="Low Quantity Threshold"
                             />
-                            {errors?.product_variants?.[idx]
+                            {errors?.productVariants?.[idx]
                               ?.lowQuantityThreshold && (
                               <p className="text-sm text-destructive">
                                 Low Quantity Threshold is required
@@ -981,7 +981,7 @@ export default function ProductDetailsPage({
                               onChange={(e) => handleVariantChange(idx, e)}
                               onFocus={(e) => handleVariantOnFocusInput(e, idx)}
                               className={`${
-                                errors?.product_variants?.[idx]?.reserved
+                                errors?.productVariants?.[idx]?.reserved
                                   ? "border-destructive"
                                   : ""
                               }`}
@@ -989,7 +989,7 @@ export default function ProductDetailsPage({
                               min={0}
                               title="Reserved"
                             />
-                            {errors?.product_variants?.[idx]?.reserved && (
+                            {errors?.productVariants?.[idx]?.reserved && (
                               <p className="text-sm text-destructive">
                                 Reserved is required
                               </p>
@@ -1019,14 +1019,14 @@ export default function ProductDetailsPage({
                               onChange={(e) => handleVariantChange(idx, e)}
                               onFocus={(e) => handleVariantOnFocusInput(e, idx)}
                               className={`${
-                                errors?.product_variants?.[idx]?.sku
+                                errors?.productVariants?.[idx]?.sku
                                   ? "border-destructive"
                                   : ""
                               }`}
                               placeholder="SKU"
                               title="SKU"
                             />
-                            {errors?.product_variants?.[idx]?.sku && (
+                            {errors?.productVariants?.[idx]?.sku && (
                               <p className="text-sm text-destructive">
                                 SKU is required
                               </p>
@@ -1055,7 +1055,7 @@ export default function ProductDetailsPage({
 
                               <div
                                 className={`border-2 border-dashed rounded-md p-2 flex flex-col items-center justify-center cursor-pointer text-center w-full md:w-80 h-70 hover:bg-background/10 transition overflow-hidden ${
-                                  errors?.product_variants?.[idx]?.image
+                                  errors?.productVariants?.[idx]?.image
                                     ? "border-destructive"
                                     : ""
                                 }`}
@@ -1067,11 +1067,11 @@ export default function ProductDetailsPage({
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => handleVariantFileChange(idx, e)}
                               >
-                                {variant.image_url ? (
+                                {variant.imageUrl ? (
                                   <div className="w-full md:w-75 h-65 overflow-hidden rounded-md relative group">
                                     {/* Variant Image */}
                                     <Image
-                                      src={`${variant.image_url}`}
+                                      src={`${variant.imageUrl}`}
                                       alt="Variant preview"
                                       width={600}
                                       height={400}
@@ -1107,8 +1107,8 @@ export default function ProductDetailsPage({
                                     handleVariantFileChange(idx, e);
                                     setErrors((prev) => ({
                                       ...prev,
-                                      product_variants: prev.product_variants
-                                        ? prev.product_variants.map((err, i) =>
+                                      productVariants: prev.productVariants
+                                        ? prev.productVariants.map((err, i) =>
                                             i === idx
                                               ? { ...err, image: "" }
                                               : err
@@ -1117,7 +1117,7 @@ export default function ProductDetailsPage({
                                     }));
                                   }}
                                 />
-                                {errors?.product_variants?.[idx]?.image && (
+                                {errors?.productVariants?.[idx]?.image && (
                                   <p className="text-sm text-destructive mt-2.5">
                                     Variant image file is required
                                   </p>
