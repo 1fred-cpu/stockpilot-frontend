@@ -15,14 +15,9 @@ import useStore from "../../utils/zustand";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "./ui/skeleton";
 import ErrorScreen from "./ErrorScreen";
-const stockData = [
-  { category: "Electronics", inStock: 145, lowStock: 23, outOfStock: 5 },
-  { category: "Accessories", inStock: 89, lowStock: 12, outOfStock: 3 },
-  { category: "Cables", inStock: 67, lowStock: 8, outOfStock: 2 },
-  { category: "Storage", inStock: 34, lowStock: 6, outOfStock: 1 },
-];
+
 export default function StockLevelsByCategory() {
-  const { getActiveStore } = useStore();
+  const { getActiveStore, reloadState } = useStore();
   const store = getActiveStore();
   const {
     data: stockData,
@@ -30,16 +25,16 @@ export default function StockLevelsByCategory() {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["stock-level", store?.store_id],
+    queryKey: ["stock-level", store?.storeId, reloadState],
     queryFn: fetchStockLevelsByCategory,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
     refetchOnWindowFocus: false,
   });
 
   async function fetchStockLevelsByCategory() {
     try {
       const response = await axiosInstance.get(
-        `/analytics/stock-level/${store?.store_id}`
+        `/analytics/stock-level/${store?.storeId}`
       );
       return response.data;
     } catch (error) {

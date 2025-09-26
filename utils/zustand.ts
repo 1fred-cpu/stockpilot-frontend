@@ -38,6 +38,7 @@ interface AppStore {
 
 interface UseStore {
   appStore: AppStore;
+  reloadState: boolean;
 
   // Generic
   setAppStore: (appStore: Partial<AppStore>) => void;
@@ -47,6 +48,7 @@ interface UseStore {
   setUser: (user: User | null) => void;
   setStores: (stores: Store[]) => void;
   setActiveStore: (activeStore: ActiveStore | null) => void;
+  setReloadState: () => void;
 
   // Selectors
   getActiveStore: () => Store | null;
@@ -65,6 +67,7 @@ const useStore = create<UseStore>()(
   persist(
     immer((set, get) => ({
       appStore: initialAppStore,
+      reloadState: false,
 
       // ✅ Generic setter with merge
       setAppStore: (appStore) =>
@@ -92,6 +95,10 @@ const useStore = create<UseStore>()(
       setActiveStore: (activeStore) =>
         set((state) => {
           state.appStore.activeStore = activeStore;
+        }),
+      setReloadState: () =>
+        set((state) => {
+          state.reloadState = !state.reloadState;
         }),
 
       // ✅ Selector: Get currently active store object

@@ -8,25 +8,35 @@ import { toast } from "sonner";
 import { Skeleton } from "./ui/skeleton";
 import ErrorScreen from "./ErrorScreen";
 
+type KPI = {
+  totalItems: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+};
+
+interface Props {
+  totals: KPI;
+}
 export default function InventoryKPI() {
   const { getActiveStore } = useStore();
   const store = getActiveStore();
   const {
-    data: inventoryKPIs,
+    data,
     isLoading: loadingKPIs,
     refetch: refetchKPIs,
     error,
   } = useQuery({
-    queryKey: ["inventory-kpis", store?.store_id],
+    queryKey: ["inventory-kpis", store?.storeId],
     queryFn: fetchInventoryKPIs,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
     refetchOnWindowFocus: false,
   });
 
+  const inventoryKPI: Props = data;
   async function fetchInventoryKPIs() {
     try {
       const response = await axiosInstance.get(
-        `/analytics/inventory-kpi/${store?.store_id}`
+        `/analytics/inventory-kpi/${store?.storeId}`
       );
       return response.data;
     } catch (error: any) {
@@ -57,7 +67,7 @@ export default function InventoryKPI() {
 
         <CardContent>
           <div className="text-2xl font-bold mb-1">
-            {inventoryKPIs?.totals?.total_items || 0}
+            {inventoryKPI?.totals?.totalItems || 0}
           </div>
           <p className="text-xs text-blue-600">Across all categories</p>
         </CardContent>
@@ -71,7 +81,7 @@ export default function InventoryKPI() {
 
         <CardContent>
           <div className="text-2xl font-bold  mb-1">
-            {inventoryKPIs?.totals?.low_stock_count || 0}
+            {inventoryKPI?.totals?.lowStockCount || 0}
           </div>
           <p className="text-xs text-orange-600">Items need restocking</p>
         </CardContent>
@@ -85,7 +95,7 @@ export default function InventoryKPI() {
 
         <CardContent>
           <div className="text-2xl font-bold  mb-1">
-            {inventoryKPIs?.totals?.out_of_stock_count || 0}
+            {inventoryKPI?.totals?.outOfStockCount || 0}
           </div>
           <p className="text-xs text-red-600">Items unavailable</p>
         </CardContent>

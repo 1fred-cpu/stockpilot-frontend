@@ -20,16 +20,10 @@ interface Inventory {
   stock: number;
   total: number;
 }
-const inventoryData = [
-  { category: "Electronics", stock: 85, total: 100 },
-  { category: "Accessories", stock: 62, total: 80 },
-  { category: "Cables", stock: 45, total: 60 },
-  { category: "Storage", stock: 28, total: 40 },
-];
+
 export default function InventoryStatus() {
   const { getActiveStore } = useStore();
   const store = getActiveStore();
-  const queryClient = useQueryClient();
 
   async function fetchInventoryStatus() {
     try {
@@ -40,12 +34,6 @@ export default function InventoryStatus() {
     } catch (error) {
       throw error;
     }
-  }
-
-  function handleRetry() {
-    queryClient.invalidateQueries({
-      queryKey: ["inventory-status", store?.storeId],
-    });
   }
 
   const { data, error, isLoading, refetch } = useQuery({
@@ -72,7 +60,7 @@ export default function InventoryStatus() {
       <CardContent className="flex-1 flex ">
         <div className="space-y-4 flex flex-col flex-1">
           {inventoryData.length ? (
-            inventoryData.map((item: any, index: number) => (
+            inventoryData.map((item: Inventory, index: number) => (
               <div key={index} className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="font-medium text-foreground">

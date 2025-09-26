@@ -36,12 +36,13 @@ export default function LowAndOutOfStockTable() {
   //   const [items, setItems] = useState<LowStockItem[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const { getActiveStore } = useStore();
+  const { getActiveStore, reloadState } = useStore();
+
   const store = getActiveStore();
   const { data, isLoading, refetch, error } = useQuery({
-    queryKey: ["low-and-out-stocks", store?.store_id],
+    queryKey: ["low-and-out-stocks", store?.storeId, reloadState],
     queryFn: fetchLowAndOutOfStockItems,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
     refetchOnWindowFocus: false,
   });
 
@@ -50,7 +51,7 @@ export default function LowAndOutOfStockTable() {
   async function fetchLowAndOutOfStockItems() {
     try {
       const response = await axiosInstance.get(
-        `/inventory/low-and-out-stocks/${store?.store_id}`
+        `/inventory/low-and-out-stocks/${store?.storeId}`
       );
       return response.data;
     } catch (error) {
@@ -97,12 +98,12 @@ export default function LowAndOutOfStockTable() {
               </TableHeader>
               <TableBody>
                 {paginatedItems?.map((item: any) => (
-                  <TableRow key={item.variant_id}>
+                  <TableRow key={item.productId}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3 max-w-[14rem]">
                         <Image
-                          src={item.image_url}
-                          alt={item.product_name}
+                          src={item.imageUrl}
+                          alt={item.variantName}
                           width={600}
                           height={400}
                           loading="lazy"
@@ -110,13 +111,13 @@ export default function LowAndOutOfStockTable() {
                         />
                         <div className="truncate">
                           <p className="font-medium truncate">
-                            {item.product_name}
+                            {item.productName}
                           </p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>{item.category}</TableCell>
-                    <TableCell>{item.variant_name}</TableCell>
+                    <TableCell>{item.variantName} </TableCell>
                     <TableCell>{item.sku}</TableCell>
                     <TableCell className="text-center">{item.stock}</TableCell>
                     <TableCell className="text-center">

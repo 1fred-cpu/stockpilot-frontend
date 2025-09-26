@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { ClipLoader } from "react-spinners";
 import PageHeader from "./PageHeader";
 import { getCurrencySymbol } from "../../utils/currency";
+import Spinner from "./Spinner";
 
 export default function CreateSalePage() {
   // cart quantities keyed by variant id
@@ -62,16 +63,16 @@ export default function CreateSalePage() {
   const store = getActiveStore();
 
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: [`store-products`, store?.store_id],
+    queryKey: [`store-products`, store?.storeId],
     queryFn: fetchProductWithVariants,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
     refetchOnWindowFocus: false,
   });
 
   async function fetchProductWithVariants() {
     try {
       const response = await axiosInstance.get(
-        `/businesses/stores/${store?.store_id}/products`
+        `/businesses/stores/${store?.storeId}/products`
       );
       return response.data;
     } catch (error) {
@@ -129,7 +130,7 @@ export default function CreateSalePage() {
     // guard: nothing to submit
     const selectedVariants = products
       ?.flatMap((product: any) =>
-        product.product_variants.map((v: any) => ({
+        product.productVariants.map((v: any) => ({
           ...v,
           productName: product.name,
           sku: v.sku,
@@ -164,6 +165,7 @@ export default function CreateSalePage() {
       return;
     }
 
+    const toastId = toast.loading("Creating a sale....");
     setLoading(true);
 
     // ensure we have an idempotency key (we set one on mount, but be robust)
@@ -172,15 +174,15 @@ export default function CreateSalePage() {
 
     try {
       const payload = {
-        store_id: store?.store_id || "",
-        business_id: store?.business_id || "",
-        created_by: appStore.user?.id || "",
-        idempotency_key: keyToUse,
-        total_amount: selectedVariants.reduce(
+        storeId: store?.storeId || "",
+        businessId: store?.businessId || "",
+        createdBy: appStore.user?.id || "",
+        idempotencyKey: keyToUse,
+        totalAmount: selectedVariants.reduce(
           (acc: number, v: any) => acc + (saleData[v.id] || 0) * v?.finalPrice,
           0
         ),
-        payment_method: paymentMethod,
+        paymentMethod,
         reference: generateReference("SALE"),
         customer: {
           name: customerName,
@@ -188,9 +190,9 @@ export default function CreateSalePage() {
           phone: customerPhone,
         },
         items: selectedVariants.map((variant: any) => ({
-          variant_id: variant.id,
+          variantId: variant.id,
           quantity: saleData[variant.id] || 0,
-          unit_price: variant?.finalPrice,
+          unitPrice: variant?.finalPrice,
           discount: variant?.discount?.value || 0,
         })),
       };
@@ -199,7 +201,9 @@ export default function CreateSalePage() {
 
       // On success, mark as submitted to prevent accidental duplicate retries.
       if (response?.data?.message) {
-        toast.success(response.data?.message || "Sale created successfully");
+        toast.success(response.data?.message || "Sale created successfully", {
+          id: toastId,
+        });
 
         // clear cart & customer fields (UI reset)
         setSaleData({});
@@ -221,7 +225,8 @@ export default function CreateSalePage() {
     } catch (err: any) {
       // Let user retry with same idempotency key (backend should dedupe)
       toast.error(
-        err?.response?.data?.message || err.message || "Submit failed"
+        err?.response?.data?.message || err.message || "Submit failed",
+        { id: toastId }
       );
     } finally {
       setLoading(false);
@@ -244,7 +249,7 @@ export default function CreateSalePage() {
   const filteredProducts = products?.filter(
     (p: any) =>
       p?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p?.category_type?.toLowerCase().includes(searchQuery.toLowerCase())
+      p?.categoryType?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredProducts?.length / itemsPerPage);
@@ -256,7 +261,7 @@ export default function CreateSalePage() {
 
   const selectedVariants = products
     ?.flatMap((product: any) =>
-      product.product_variants.map((v: any) => ({
+      product.productVariants.map((v: any) => ({
         ...v,
         productName: product.name,
         sku: v.sku,
@@ -343,7 +348,7 @@ export default function CreateSalePage() {
                         <span className="font-medium">{product?.name}</span>
                       </div>
                       <span className="text-sm text-muted-foreground">
-                        {product?.category_type}
+                        {product?.categoryType}
                       </span>
                     </div>
                   </AccordionTrigger>
@@ -360,9 +365,24 @@ export default function CreateSalePage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {product?.product_variants?.map((variant: any) => (
+                        {product?.productVariants?.map((variant: any) => (
                           <TableRow key={variant.id}>
-                            <TableCell>{variant.name}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Image
+                                  src={variant?.imageUrl || "/placeholder.png"}
+                                  alt="Variant Image"
+                                  width={600}
+                                  height={400}
+                                  className="w-14 h-14 rounded-md object-cover"
+                                  loading="lazy"
+                                />
+                                <span className="text-sm truncate">
+                                  {" "}
+                                  {variant.name}
+                                </span>
+                              </div>
+                            </TableCell>
                             <TableCell>{variant.sku}</TableCell>
                             <TableCell>{variant.inventory?.quantity}</TableCell>
                             <TableCell>
@@ -470,7 +490,7 @@ export default function CreateSalePage() {
               />
               <Input
                 type="text"
-                placeholder="Payment Method eg. CASH, CARD, MOMO"
+                placeholder="Payment Method eg. cash, card, momo, etc"
                 value={paymentMethod}
                 onChange={(e) => handlePaymentMethodChange(e.target.value)}
                 disabled={loading}
@@ -555,7 +575,9 @@ export default function CreateSalePage() {
                 }
               >
                 {loading ? (
-                  <ClipLoader color="#ffffff" size={18} />
+                  <>
+                    <Spinner /> Submitting
+                  </>
                 ) : submitted ? (
                   "Submitted"
                 ) : (

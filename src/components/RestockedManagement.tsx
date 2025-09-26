@@ -29,6 +29,7 @@ import { v4 as uuidv4 } from "uuid";
 import { generateReference } from "../../utils/generate-reference";
 import { toast } from "sonner";
 import { ClipLoader } from "react-spinners";
+import Spinner from "./Spinner";
 
 export default function RestockedManagement() {
   const [restockData, setRestockData] = useState<Record<string, number>>({});
@@ -36,21 +37,21 @@ export default function RestockedManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-  const { getActiveStore, appStore } = useStore();
+  const { getActiveStore, appStore, setReloadState } = useStore();
   const store = getActiveStore();
   const [loading, setLoading] = useState<boolean>(false);
 
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: [`store-products`, store?.store_id],
+    queryKey: [`store-products`, store?.storeId],
     queryFn: fetchProductWithVariants,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
     refetchOnWindowFocus: false,
   });
 
   async function fetchProductWithVariants() {
     try {
       const response = await axiosInstance.get(
-        `/businesses/stores/${store?.store_id}/products`
+        `/businesses/stores/${store?.storeId}/products`
       );
       return response.data;
     } catch (error) {
@@ -89,29 +90,33 @@ export default function RestockedManagement() {
       return;
     }
 
+    const toastId = toast.loading("Submitting restock....");
     setLoading(true);
     try {
       const response = await axiosInstance.post("/inventory/restock", {
-        store_id: store?.store_id || "",
-        business_id: store?.business_id || "",
-        restocked_by: appStore.user?.id || "",
-        idempotency_key: idempotencyKey,
+        storeId: store?.storeId || "",
+        businessId: store?.businessId || "",
+        restockedBy: appStore.user?.id || "",
+        idempotencyKey: idempotencyKey,
         reference: generateReference("RSTK"),
         variants: selectedVariants?.map((variant: any) => ({
-          variant_id: variant.id,
+          variantId: variant.id,
           quantity: restockData[variant.id] || 0,
         })),
       });
 
       if (response.data.results) {
-        toast.success(response.data?.message);
+        toast.success(response.data?.message, { id: toastId });
         setIdempotencyKey(""); // clear key to allow new intent
         setRestockData({});
+        setReloadState();
         refetch();
         // keep same idempotencyKey until reset
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || error.message);
+      toast.error(error?.response?.data?.message || error.message, {
+        id: toastId,
+      });
     } finally {
       setLoading(false);
     }
@@ -126,7 +131,7 @@ export default function RestockedManagement() {
   const filteredProducts = products?.filter(
     (p: any) =>
       p?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p?.category_type?.toLowerCase().includes(searchQuery.toLowerCase())
+      p?.categoryType?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredProducts?.length / itemsPerPage);
@@ -138,7 +143,7 @@ export default function RestockedManagement() {
 
   const selectedVariants = products
     ?.flatMap((product: any) =>
-      product.product_variants.map((v: any) => ({
+      product?.productVariants?.map((v: any) => ({
         ...v,
         productName: product.name,
         sku: v.sku,
@@ -183,7 +188,7 @@ export default function RestockedManagement() {
               <AccordionItem key={product?.id} value={product?.id}>
                 <AccordionTrigger className="cursor-pointer">
                   <div className="flex justify-between w-full text-left">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 ">
                       <Image
                         src={product?.thumbnail || "/placeholder.png"}
                         alt="Product Image"
@@ -192,10 +197,12 @@ export default function RestockedManagement() {
                         className="w-14 h-14 rounded-md object-cover"
                         loading="lazy"
                       />
-                      <span className="font-medium">{product?.name}</span>
+                      <span className="font-medium text-sm truncate">
+                        {product?.name}
+                      </span>
                     </div>
-                    <span className="text-sm text-muted-foreground">
-                      {product?.category_type}
+                    <span className="text-sm text-muted-foreground flex items-center justify-center">
+                      {product?.categoryType}
                     </span>
                   </div>
                 </AccordionTrigger>
@@ -212,9 +219,24 @@ export default function RestockedManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {product?.product_variants?.map((variant: any) => (
+                      {product?.productVariants?.map((variant: any) => (
                         <TableRow key={variant.id}>
-                          <TableCell>{variant.name}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Image
+                                src={variant?.imageUrl || "/placeholder.png"}
+                                alt="Variant Image"
+                                width={600}
+                                height={400}
+                                className="w-14 h-14 rounded-md object-cover"
+                                loading="lazy"
+                              />
+                              <span className="text-sm truncate">
+                                {" "}
+                                {variant.name}
+                              </span>
+                            </div>
+                          </TableCell>
                           <TableCell>{variant.sku}</TableCell>
                           <TableCell>{variant.inventory?.quantity}</TableCell>
                           <TableCell>
@@ -331,7 +353,13 @@ export default function RestockedManagement() {
                 Reset
               </Button>
               <Button onClick={handleSubmitRestock} disabled={loading}>
-                {loading ? <ClipLoader color="#ffffff" size={18} /> : "Submit"}
+                {loading ? (
+                  <>
+                    <Spinner /> Submitting....
+                  </>
+                ) : (
+                  "Submit"
+                )}
               </Button>
             </div>
           )}

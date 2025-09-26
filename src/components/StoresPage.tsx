@@ -66,20 +66,27 @@ import {
 } from "./ui/alert-dialog";
 import Image from "next/image";
 import Spinner from "./Spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 type StoreItem = {
   id: string;
   name: string;
   location?: string;
-  created_at?: string;
+  address?: string;
+  createdAt?: string;
   manager?: string;
   currency?: string;
-  todays_sales: {
+  todaysSales: {
     revenue?: number;
     quantity?: number;
   };
   stock: {
-    low_stock_count?: number;
-    total_products?: number;
+    lowStockcount?: number;
+    totalProducts?: number;
   };
 };
 
@@ -104,16 +111,16 @@ export default function StoresPage() {
   // Drawer / detail state
   const [openStore, setOpenStore] = useState<StoreItem | null>(null);
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: ["stores", store?.store_id],
+    queryKey: ["stores", store?.storeId],
     queryFn: fetchStores,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
     refetchOnWindowFocus: false,
   });
 
   async function fetchStores() {
     try {
       const response = await axiosInstance.get(
-        `stores/${store?.business_id}/all`
+        `stores/${store?.businessId}/all`
       );
       return response.data;
     } catch (error) {
@@ -148,12 +155,13 @@ export default function StoresPage() {
   // Handle switch stores
   function handleSwitchStore(s: StoreItem) {
     setActiveStore({
-      store_id: s?.id,
+      storeId: s?.id,
       currency: s?.currency as string,
       location: s?.location as string,
-      store_name: s?.name as string,
-      business_id: store?.business_id as string,
-      business_name: store?.business_name as string,
+      storeName: s?.name as string,
+      businessId: store?.storeId as string,
+      businessName: store?.businessName as string,
+      address: s?.address as string,
     });
     toast.success(`Switched to ${s?.name}`);
   }
@@ -346,7 +354,7 @@ export default function StoresPage() {
                 <div
                   key={store?.id}
                   className={`border rounded-md p-4 flex flex-col justify-between transition ${
-                    getActiveStore()?.store_id === store?.id
+                    getActiveStore()?.storeId === store?.id
                       ? "border-primary/80"
                       : ""
                   }`}
@@ -382,7 +390,7 @@ export default function StoresPage() {
                           Products
                         </div>
                         <div className="font-medium">
-                          {store.total_products ?? "—"}
+                          {store.totalProducts ?? "—"}
                         </div>
                       </div> */}
                     </div>
@@ -392,12 +400,12 @@ export default function StoresPage() {
                         label="Today's sales"
                         value={
                           getCurrencySymbol(store?.currency) +
-                          store?.todays_sales?.revenue.toFixed(2)
+                          store?.todaysSales?.revenue.toFixed(2)
                         }
                       />
                       <KpiRow
                         label="Low stock"
-                        value={store?.stock?.low_stock_count ?? 0}
+                        value={store?.stock?.lowStockcount ?? 0}
                       />
                     </div>
                   </div>
@@ -412,16 +420,16 @@ export default function StoresPage() {
                             name: store?.name,
                             id: store?.id,
                             location: store?.location,
-                            created_at: store?.created_at,
+                            createdAt: store?.createdAt,
                             manager: store?.managers?.[0]?.name,
                             currency: store?.currency,
                             stock: {
-                              total_products: store?.stock?.total_products,
-                              low_stock_count: store?.stock?.low_stock_count,
+                              totalProducts: store?.stock?.totalProducts,
+                              lowStockcount: store?.stock?.lowStockCount,
                             },
-                            todays_sales: {
-                              revenue: store?.todays_sales.revenue,
-                              quantity: store?.todays_sales.quantity,
+                            todaysSales: {
+                              revenue: store?.todaysSales.revenue,
+                              quantity: store?.todaysSales.quantity,
                             },
                           })
                         }
@@ -438,23 +446,58 @@ export default function StoresPage() {
                     </div>
 
                     <div className="mt-4 md:mt-0 flex flex-col md:flex-row gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleSwitchStore(store)}
-                      >
-                        Switch Store
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="gap-2 w-full disabled:cursor-not-allowed"
+                                disabled={data?.length === 1}
+                                onClick={() => handleSwitchStore(store)}
+                              >
+                                {/* <Trash2 className="w-4 h-4" /> */}
+                                Switch Store
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {data?.length === 1 && (
+                            <TooltipContent className="bg-background border shadow max-w-80 leading-5 text-foreground">
+                              <p>
+                                Store switching is unavailable because you only
+                                have one store. Create a new store to enable
+                                switching.
+                              </p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                       <AlertDialog open={open} onOpenChange={setOpen}>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="gap-2"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete Store
-                          </Button>
-                        </AlertDialogTrigger>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="gap-2 w-full disabled:cursor-not-allowed"
+                                    disabled={data?.length === 1}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete Store
+                                  </Button>
+                                </AlertDialogTrigger>
+                              </span>
+                            </TooltipTrigger>
+                            {data?.length === 1 && (
+                              <TooltipContent className="bg-background border shadow max-w-80 leading-5 text-foreground">
+                                <p>You must have at least one store.</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
 
                         <AlertDialogContent className="max-w-md rounded-md shadow-lg">
                           <div className="space-y-4">
@@ -539,23 +582,23 @@ export default function StoresPage() {
                       <TableCell>{store?.location ?? "—"}</TableCell>
                       <TableCell>{store?.managers?.[0]?.name ?? "—"}</TableCell>
                       <TableCell>
-                        {store?.stock?.total_products ?? "—"}
+                        {store?.stock?.totalProducts ?? "—"}
                       </TableCell>
                       <TableCell>
                         <Badge
                           variant={
-                            store?.stock?.low_stock_count &&
-                            store?.stock?.low_stock_count > 0
+                            store?.stock?.lowStockcount &&
+                            store?.stock?.lowStockcount > 0
                               ? "secondary"
                               : undefined
                           }
                         >
-                          {store?.stock?.low_stock_count ?? 0}
+                          {store?.stock?.lowStockcount ?? 0}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         {getCurrencySymbol(store?.currency)}
-                        {store?.todays_sales?.revenue?.toFixed(2) ?? 0}
+                        {store?.todaysSales?.revenue?.toFixed(2) ?? 0}
                       </TableCell>
                       <TableCell colSpan={2}>
                         <div className="flex items-center justify-end gap-2">
@@ -567,29 +610,49 @@ export default function StoresPage() {
                                 name: store?.name,
                                 id: store?.id,
                                 location: store?.location,
-                                created_at: store?.created_at,
+                                createdAt: store?.createdAt,
                                 manager: store?.managers?.[0]?.name,
                                 currency: store?.currency,
                                 stock: {
-                                  total_products: store?.stock?.total_products,
-                                  low_stock_count:
-                                    store?.stock?.low_stock_count,
+                                  totalProducts: store?.stock?.totalProducts,
+                                  lowStockcount: store?.stock?.lowStockcount,
                                 },
-                                todays_sales: {
-                                  revenue: store?.todays_sales.revenue,
-                                  quantity: store?.todays_sales.quantity,
+                                todaysSales: {
+                                  revenue: store?.todaysSales.revenue,
+                                  quantity: store?.todaysSales.quantity,
                                 },
                               })
                             }
                           >
                             Details
                           </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handleSwitchStore(store)}
-                          >
-                            Switch
-                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span>
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    className="gap-2 w-full disabled:cursor-not-allowed"
+                                    disabled={data?.length === 1}
+                                    onClick={() => handleSwitchStore(store)}
+                                  >
+                                    {/* <Trash2 className="w-4 h-4" /> */}
+                                    Switch Store
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              {data?.length === 1 && (
+                                <TooltipContent className="bg-background border shadow max-w-80 leading-5 text-foreground">
+                                  <p>
+                                    Store switching is unavailable because you
+                                    only have one store. Create a new store to
+                                    enable switching.
+                                  </p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -655,9 +718,9 @@ export default function StoresPage() {
                     </div>
                     <div className="text-xs text-muted-foreground mt-2">
                       Created{" "}
-                      {openStore.created_at
+                      {openStore.createdAt
                         ? formatDistanceToNowStrict(
-                            new Date(openStore.created_at)
+                            new Date(openStore.createdAt)
                           ) + " ago"
                         : "—"}
                     </div>
@@ -688,7 +751,7 @@ export default function StoresPage() {
                     <CardContent>
                       <div className="text-xl font-semibold">
                         {getCurrencySymbol(store?.currency)}
-                        {openStore.todays_sales.revenue?.toFixed(2) ?? 0}
+                        {openStore.todaysSales.revenue?.toFixed(2) ?? 0}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         Transactions today
@@ -706,11 +769,11 @@ export default function StoresPage() {
                       <div className="flex flex-col gap-2">
                         <KpiRow
                           label="Low stock"
-                          value={openStore.stock.low_stock_count ?? 0}
+                          value={openStore.stock.lowStockcount ?? 0}
                         />
                         <KpiRow
                           label="Total products"
-                          value={openStore.stock.total_products ?? 0}
+                          value={openStore.stock.totalProducts ?? 0}
                         />
                       </div>
                     </CardContent>
@@ -722,12 +785,33 @@ export default function StoresPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="flex flex-col gap-2">
-                        <Button
-                          onClick={() => handleSwitchStore(openStore)}
-                          className="w-full"
-                        >
-                          Switch to this store
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="gap-2 w-full disabled:cursor-not-allowed"
+                                  disabled={data?.length === 1}
+                                  onClick={() => handleSwitchStore(openStore)}
+                                >
+                                  {/* <Trash2 className="w-4 h-4" /> */}
+                                  Switch Store
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            {data?.length === 1 && (
+                              <TooltipContent className="bg-background border shadow max-w-80 leading-5 text-foreground">
+                                <p>
+                                  Store switching is unavailable because you
+                                  only have one store. Create a new store to
+                                  enable switching.
+                                </p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
                         <Button
                           variant="outline"
                           onClick={() => handleEditStore(openStore)}
@@ -735,13 +819,29 @@ export default function StoresPage() {
                         >
                           Edit store
                         </Button>
-                        <Button
-                          variant="destructive"
-                          onClick={() => handleDeleteStore(openStore)}
-                          className="w-full"
-                        >
-                          Delete store
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="gap-2 w-full disabled:cursor-not-allowed"
+                                  disabled={data?.length === 1}
+                                  onClick={() => handleDeleteStore(openStore)}
+                                >
+                                  {/* <Trash2 className="w-4 h-4" /> */}
+                                  Delete Store
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            {data?.length === 1 && (
+                              <TooltipContent className="bg-background border shadow max-w-80 leading-5 text-foreground">
+                                <p>You must have at least one store.</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </CardContent>
                   </Card>

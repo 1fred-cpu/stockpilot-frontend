@@ -29,85 +29,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "./ui/skeleton";
 import ErrorScreen from "./ErrorScreen";
 
-const transactions = [
-  {
-    sale_id: "S000",
-    customer: "John Doe",
-    created_at: "2025-09-18T10:15:00Z",
-    quantity: 2,
-    unit_price: 49.99,
-    total_price: 99.98,
-    product_variant: {
-      product_name: "Wireless Headphones",
-      id: "PV001",
-      sku: "WH-001-BLK",
-      name: "Black Edition",
-      image_url: "https://example.com/images/wireless-headphones-black.jpg",
-    },
-  },
-  {
-    sale_id: "S001",
-    customer: "John Doe",
-    created_at: "2025-09-18T10:15:00Z",
-    quantity: 1,
-    unit_price: 29.99,
-    total_price: 29.99,
-    product_variant: {
-      product_name: "USB-C Charger",
-      id: "PV002",
-      sku: "UC-002-WHT",
-      name: "White 30W",
-      image_url: "https://example.com/images/usb-c-charger.jpg",
-    },
-  },
-  {
-    sale_id: "S002",
-    customer: "Jane Smith",
-    created_at: "2025-09-18T13:45:00Z",
-    quantity: 3,
-    unit_price: 15.0,
-    total_price: 45.0,
-    product_variant: {
-      product_name: "Notebook",
-      id: "PV003",
-      sku: "NB-003-RED",
-      name: "A5 Red Cover",
-      image_url: "https://example.com/images/notebook-red.jpg",
-    },
-  },
-  {
-    sale_id: "S003",
-    customer: "David Brown",
-    created_at: "2025-09-20T09:20:00Z",
-    quantity: 1,
-    unit_price: 499.99,
-    total_price: 499.99,
-    product_variant: {
-      product_name: "Smart Watch",
-      id: "PV004",
-      sku: "SW-004-SLV",
-      name: "Silver Edition",
-      image_url: "https://example.com/images/smart-watch-silver.jpg",
-    },
-  },
-];
-
-// Status badge renderer
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "Paid":
-      return <span className="text-primary font-medium">Paid</span>;
-    case "Pending":
-      return <span className="text-yellow-600 font-medium">Pending</span>;
-    case "Shipped":
-      return <span className="text-green-600 font-medium">Shipped</span>;
-    case "Refunded":
-      return <span className="text-destructive font-medium">Refunded</span>;
-    default:
-      return <span className="text-muted-foreground">{status}</span>;
-  }
-};
-
 export default function SaleTable() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -120,7 +41,7 @@ export default function SaleTable() {
   async function fetchSalesByDate() {
     try {
       const response = await axiosInstance.get(
-        `/sales/stores/${store?.store_id}?date=${selectedDate}`
+        `/sales/stores/${store?.storeId}?date=${selectedDate?.toISOString()}`
       );
       return await response.data;
     } catch (error) {
@@ -128,14 +49,13 @@ export default function SaleTable() {
     }
   }
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: ["sales-by-date", store?.store_id],
+    queryKey: ["sales-by-date", store?.storeId],
     queryFn: fetchSalesByDate,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
     refetchOnWindowFocus: false,
   });
 
   const transactions = data?.saleItems || [];
-  console.log("Fetched transactions:", transactions);
 
   // Filter transactions by  search, and date
   const filteredTransactions = useMemo(() => {
@@ -143,12 +63,12 @@ export default function SaleTable() {
       const matchesStatus = statusFilter === "all";
       // transaction.status.toLowerCase() === statusFilter.toLowerCase();
 
-      const matchesSearch = transaction?.product_variant?.product_name
+      const matchesSearch = transaction?.productVariant?.productName
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
 
       const matchesDate = selectedDate
-        ? format(new Date(transaction.created_at), "yyyy-MM-dd") ===
+        ? format(new Date(transaction.createdAt), "yyyy-MM-dd") ===
           format(selectedDate, "yyyy-MM-dd")
         : true;
 
@@ -159,7 +79,7 @@ export default function SaleTable() {
   // Calculate total revenue
   const totalRevenue = useMemo(() => {
     return filteredTransactions.reduce((sum: number, transaction: any) => {
-      const num = transaction?.total_price;
+      const num = transaction?.totalPrice;
       return sum + (isNaN(num) ? 0 : num);
     }, 0);
   }, [filteredTransactions]);
@@ -260,35 +180,35 @@ export default function SaleTable() {
           <TableBody>
             {filteredTransactions.map((transaction: any) => (
               <TableRow
-                key={transaction?.sale_id + transaction?.product_variant?.id}
+                key={transaction?.saleId + transaction?.productVariant?.id}
               >
                 <TableCell className="font-mono text-sm">
                   {transaction?.reference || transaction?.sale_id}
                 </TableCell>
 
                 <TableCell className="font-medium">
-                  {transaction?.product_variant?.product_name}
+                  {transaction?.productVariant?.productName}
                 </TableCell>
 
                 <TableCell className="font-medium">
-                  {transaction?.product_variant?.name}
+                  {transaction?.productVariant?.name}
                 </TableCell>
 
                 <TableCell>{transaction?.customer}</TableCell>
 
                 <TableCell>{transaction?.quantity}</TableCell>
                 <TableCell className="font-medium">
-                  {transaction?.unit_price?.toFixed(2)}
+                  {transaction?.unitPrice?.toFixed(2)}
                 </TableCell>
                 <TableCell className="font-medium">
-                  {transaction?.total_price?.toFixed(2)}
+                  {transaction?.totalPrice?.toFixed(2)}
                 </TableCell>
                 <TableCell className="font-medium">
-                  {transaction?.payment_method}
+                  {transaction?.paymentMethod}
                 </TableCell>
                 <TableCell className="text-foreground">
-                  {transaction?.created_at
-                    ? format(new Date(transaction.created_at), "MMM dd, yyyy")
+                  {transaction?.createdAt
+                    ? format(new Date(transaction.createdAt), "MMM dd, yyyy")
                     : null}
                 </TableCell>
                 {/* <TableCell>{getStatusBadge(transaction.status)}</TableCell> */}
@@ -298,8 +218,8 @@ export default function SaleTable() {
             {filteredTransactions.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={7}
-                  className="text-center text-muted-foreground py-10"
+                  colSpan={9}
+                  className="text-center text-muted-foreground py-10 "
                 >
                   No transactions found.
                 </TableCell>

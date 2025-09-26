@@ -22,6 +22,7 @@ import useStore from "../../utils/zustand";
 
 import { HelpCircle, Upload } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import Spinner from "./Spinner";
 
 /** --------------------------
  * Types
@@ -36,7 +37,7 @@ type Inventory = {
 interface Variant {
   id?: string;
   imageFile: File | null;
-  image_url?: string; // dataURL or blob URL for preview
+  imageUrl?: string; // dataURL or blob URL for preview
   name: string;
   price: number | string;
   inventory: Inventory;
@@ -61,7 +62,7 @@ const ONE_MB = 1 * 1024 * 1024;
 
 const initialVariant: Variant = {
   imageFile: null,
-  image_url: "",
+  imageUrl: "",
   name: "",
   price: "",
   inventory: {
@@ -169,8 +170,8 @@ export default function CreateProductPage() {
           vErr.name = "Name is required";
           valid = false;
         }
-        // Only require imageFile if creating a new variant (no id and no image_url)
-        if (!v.imageFile && !v.image_url) {
+        // Only require imageFile if creating a new variant (no id and no imageUrl)
+        if (!v.imageFile && !v.imageUrl) {
           vErr.image = "Variant image is required";
           valid = false;
         }
@@ -200,7 +201,7 @@ export default function CreateProductPage() {
           valid = false;
         }
 
-        if (!v.imageFile && !v.image_url) {
+        if (!v.imageFile && !v.imageUrl) {
           vErr.image = "Variant image is required";
           valid = false;
         }
@@ -325,7 +326,7 @@ export default function CreateProductPage() {
           updated[idx] = {
             ...updated[idx],
             imageFile: file,
-            image_url: reader.result as string,
+            imageUrl: reader.result as string,
           };
           return { ...prev, productVariants: updated };
         });
@@ -376,6 +377,7 @@ export default function CreateProductPage() {
     if (!validateAndSetErrors()) {
       return;
     }
+    const toastId = toast.loading(`Creating product ${product.name}`);
 
     setLoading(true);
     const formData = new FormData();
@@ -428,12 +430,16 @@ export default function CreateProductPage() {
         formData
       );
       const data = res.data.product;
-      toast.success(data.message || "Product created successfully");
 
       setProduct(initialProduct);
       setThumbnailPreview("");
+      toast.success(data.message || "Product created successfully", {
+        id: toastId,
+      });
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Creating product failed");
+      toast.error(error?.response?.data?.message || "Creating product failed", {
+        id: toastId,
+      });
     } finally {
       setLoading(false);
     }
@@ -974,11 +980,11 @@ export default function CreateProductPage() {
                                   }));
                                 }}
                               >
-                                {variant.image_url ? (
+                                {variant.imageUrl ? (
                                   <div className="w-full md:w-75 h-65 overflow-hidden rounded-md relative group">
                                     {/* Variant Image */}
                                     <Image
-                                      src={`${variant.image_url}`}
+                                      src={`${variant.imageUrl}`}
                                       alt="Variant preview"
                                       width={600}
                                       height={400}
@@ -1056,8 +1062,7 @@ export default function CreateProductPage() {
           {/* Sticky Save Bar */}
           <div className="sticky bottom-0 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t p-4 flex justify-end gap-3 rounded-b-md">
             <Button onClick={handleSubmit} disabled={loading}>
-              {loading ? <ClipLoader size={16} className="text-white" /> : ""}{" "}
-              Create Product
+              {loading ? <Spinner /> : ""} Create Product
             </Button>
           </div>
         </CardContent>

@@ -17,22 +17,15 @@ import ErrorScreen from "./ErrorScreen";
 import Image from "next/image";
 
 type Product = {
-  name: string | null;
-  sales: number | null;
-  revenue: number | null;
+  name: string;
+  sales: number;
+  imageUrl: string;
+  revenue: number;
 };
-// const topProducts = [
-//   { name: "Wireless Headphones", sales: 1245, revenue: "$124,500" },
-//   { name: "Smart Watch", sales: 987, revenue: "$98,700" },
-//   { name: "Laptop Stand", sales: 756, revenue: "$37,800" },
-//   { name: "USB-C Cable", sales: 654, revenue: "$13,080" },
-//   { name: "Mouse Pad", sales: 543, revenue: "$10,860" },
-// ];
 
 export default function TopSellingProducts() {
   const { getActiveStore } = useStore();
   const store = getActiveStore();
-  const queryClient = useQueryClient();
   async function fetchTopSellingProducts() {
     try {
       const response = await axiosInstance.get(
@@ -70,11 +63,11 @@ export default function TopSellingProducts() {
       <CardContent className="flex flex-1">
         <div className="space-y-4 flex flex-col flex-1">
           {topProducts.length ? (
-            topProducts.map((product: any, index: number) => (
+            topProducts.map((product: Product, index: number) => (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <Image
-                    src={product.image_url}
+                    src={product.imageUrl}
                     alt={product.name}
                     width={600}
                     height={400}

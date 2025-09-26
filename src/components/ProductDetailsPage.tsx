@@ -24,6 +24,7 @@ import { set } from "react-hook-form";
 import ProductNotFound from "./ProductNotFound";
 import { HelpCircle, Upload } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import Spinner from "./Spinner";
 
 /** --------------------------
  * Types
@@ -49,7 +50,7 @@ interface ProductDto {
   id: string;
   name: string;
   brand: string;
-  category_type: string;
+  categoryType: string;
   description: string;
   thumbnail: string; // can be URL
   tags: string[];
@@ -104,7 +105,7 @@ export default function ProductDetailsPage({
     name?: string;
     brand?: string;
     description?: string;
-    category_type?: string;
+    categoryType?: string;
     thumbnail?: string | null;
     productVariants?: Array<{
       name?: string;
@@ -119,7 +120,7 @@ export default function ProductDetailsPage({
     name: "",
     brand: "",
     description: "",
-    category_type: "",
+    categoryType: "",
     thumbnail: null,
     productVariants: [],
   });
@@ -132,7 +133,7 @@ export default function ProductDetailsPage({
       name: "",
       brand: "",
       description: "",
-      category_type: "",
+      categoryType: "",
       thumbnail: null,
       productVariants: [],
     };
@@ -149,8 +150,8 @@ export default function ProductDetailsPage({
       newErrors.description = "Description is required";
       valid = false;
     }
-    if (!product.category_type?.trim()) {
-      newErrors.category_type = "Category is required";
+    if (!product.categoryType?.trim()) {
+      newErrors.categoryType = "Category is required";
       valid = false;
     }
     if (!product.thumbnail && !thumbnailFile && !thumbnailPreview) {
@@ -235,7 +236,7 @@ export default function ProductDetailsPage({
               ...v,
               inventory: {
                 ...v.inventory,
-                lowQuantityThreshold: v.inventory.lowQuantityThreshold,
+                lowQuantityThreshold: v.inventory.low_stock_quantity,
               },
             };
           }),
@@ -447,6 +448,7 @@ export default function ProductDetailsPage({
   };
 
   const handleSubmit = async () => {
+    const toastId = toast.loading(`Updating product ${product?.name}`);
     if (!product || !store?.storeId) return;
 
     if (!validateAndSetErrors()) {
@@ -461,7 +463,7 @@ export default function ProductDetailsPage({
     formData.append("storeId", store.storeId);
     formData.append("businessId", store.businessId);
     formData.append("brand", product.brand);
-    formData.append("category", product.category_type);
+    formData.append("category", product.categoryType);
     formData.append("description", product.description);
 
     // thumbnail (optional)
@@ -507,7 +509,7 @@ export default function ProductDetailsPage({
     });
 
     formData.append(
-      "removed_variant_ids",
+      "removedVariantIds",
       JSON.stringify((variantsToDelete || []).map((v) => v.id))
     );
 
@@ -517,8 +519,7 @@ export default function ProductDetailsPage({
         formData
       );
       const data = res.data.credentials.product;
-      console.log(data);
-      toast.success(data.message || "Product updated successfully");
+
       setProduct({
         ...data,
         tags: data.tags || [],
@@ -541,8 +542,13 @@ export default function ProductDetailsPage({
           },
         })),
       });
+      toast.success(data.message || "Product updated successfully", {
+        id: toastId,
+      });
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Update failed");
+      toast.error(error?.response?.data?.message || "Update failed", {
+        id: toastId,
+      });
     } finally {
       setSaving(false);
     }
@@ -635,15 +641,13 @@ export default function ProductDetailsPage({
               <Label htmlFor="category">Category</Label>
               <Input
                 id="category"
-                name="category_type"
-                value={product.category_type}
+                name="categoryType"
+                value={product.categoryType}
                 onChange={handleChange}
                 onFocus={handleOnFocusInput}
-                className={`${
-                  errors.category_type ? "border-destructive" : ""
-                }`}
+                className={`${errors.categoryType ? "border-destructive" : ""}`}
               />
-              {errors.category_type && (
+              {errors.categoryType && (
                 <p className="text-sm text-destructive">Category is required</p>
               )}
             </div>
@@ -1150,13 +1154,12 @@ export default function ProductDetailsPage({
             <Button
               variant="secondary"
               onClick={handleCancel}
-              disabled={!isDirty}
+              disabled={!isDirty || saving}
             >
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={saving || !isDirty}>
-              {saving ? <ClipLoader size={16} className="text-white" /> : ""}{" "}
-              Save Changes
+              {saving ? <Spinner /> : " "} Save Changes
             </Button>
           </div>
         </CardContent>

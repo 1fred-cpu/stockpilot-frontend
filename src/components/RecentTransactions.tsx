@@ -29,43 +29,6 @@ interface Transaction {
   quantity: number;
 }
 
-const recentTransactions = [
-  {
-    id: "ORD001",
-    product: "Wireless Headphones",
-    amount: "$129.99",
-    status: "Paid",
-    date: "Jan 30",
-  },
-  {
-    id: "ORD002",
-    product: "Smart Watch",
-    amount: "$299.99",
-    status: "Pending",
-    date: "Jan 30",
-  },
-  {
-    id: "ORD003",
-    product: "Laptop Stand",
-    amount: "$49.99",
-    status: "Paid",
-    date: "Jan 29",
-  },
-  {
-    id: "ORD004",
-    product: "USB-C Cable",
-    amount: "$19.99",
-    status: "Refunded",
-    date: "Jan 29",
-  },
-  {
-    id: "ORD005",
-    product: "Mouse Pad",
-    amount: "$15.99",
-    status: "Paid",
-    date: "Jan 28",
-  },
-];
 export function getStatusColor(status: string) {
   switch (status) {
     case "Paid":
@@ -86,7 +49,6 @@ export function getStatusColor(status: string) {
 export default function RecentTransactions() {
   const { getActiveStore } = useStore();
   const store = getActiveStore();
-  const queryClient = useQueryClient();
 
   async function fetchRecentTransaction() {
     try {
@@ -97,12 +59,6 @@ export default function RecentTransactions() {
     } catch (error) {
       throw error;
     }
-  }
-
-  function handleRetry() {
-    queryClient.invalidateQueries({
-      queryKey: ["sales-latest", store?.storeId],
-    });
   }
 
   const { data, error, isLoading, refetch } = useQuery({

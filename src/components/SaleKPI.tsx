@@ -14,19 +14,19 @@ import { Skeleton } from "./ui/skeleton";
 import ErrorScreen from "./ErrorScreen";
 import { getCurrencySymbol } from "../../utils/currency";
 export default function SaleKPI() {
-  const { getActiveStore } = useStore();
+  const { getActiveStore, reloadState } = useStore();
   const store = getActiveStore();
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: ["sale-kpi", store?.store_id],
+    queryKey: ["sale-kpi", store?.storeId, reloadState],
     queryFn: fetchSalesKPIAnalytics,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
     refetchOnWindowFocus: false,
   });
 
   async function fetchSalesKPIAnalytics() {
     try {
       const response = await axiosInstance.get(
-        `/analytics/sale-kpi/${store?.store_id}`
+        `/analytics/sale-kpi/${store?.storeId}`
       );
       return response.data;
     } catch (error) {

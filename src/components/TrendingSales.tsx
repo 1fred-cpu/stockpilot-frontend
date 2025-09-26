@@ -37,9 +37,9 @@ export default function TrendingSales() {
       : "oklch(0.708 0 0)";
 
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: ["sale-weekly-trend", store?.store_id],
+    queryKey: ["sale-weekly-trend", store?.storeId],
     queryFn: fetchTrendingSales,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
     refetchOnWindowFocus: false,
   });
 
@@ -48,7 +48,7 @@ export default function TrendingSales() {
   async function fetchTrendingSales() {
     try {
       const response = await axiosInstance.get(
-        `/analytics/sale-weekly-trend/${store?.store_id}`
+        `/analytics/sale-weekly-trend/${store?.storeId}`
       );
 
       return response.data;

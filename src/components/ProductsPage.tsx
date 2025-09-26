@@ -20,7 +20,15 @@ import {
 } from "./ui/select";
 
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { Plus, Search, Filter, Package, Eye, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Filter,
+  Package,
+  Eye,
+  Trash2,
+  Trash,
+} from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import useStore from "../../utils/zustand";
 import axiosInstance from "../../utils/axiosInstance";
@@ -41,6 +49,7 @@ import {
 } from "./ui/alert-dialog";
 import { toast } from "sonner";
 import { ClipLoader } from "react-spinners";
+import Spinner from "./Spinner";
 
 export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -86,7 +95,8 @@ export default function ProductsPage() {
     }
   }
 
-  async function handleDeleteProduct(productId: string) {
+  async function handleDeleteProduct(productId: string, productName: string) {
+    const toastId = toast.loading(`Deleting product ${productName}`);
     try {
       setLoading(true);
       const response = await axiosInstance.delete(
@@ -97,21 +107,19 @@ export default function ProductsPage() {
           queryKey: ["products", store?.storeId],
         });
 
-        toast.success("Product deleted successfully");
+        toast.success("Product deleted successfully", { id: toastId });
         setOpen(false);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || error.message);
+      toast.error(error.response?.data?.message || error.message, {
+        id: toastId,
+      });
     } finally {
       setLoading(false);
     }
   }
 
-  function handleRetry() {
-    queryClient.invalidateQueries({ queryKey: ["products", store?.storeId] });
-  }
-
-  const { data, error, isLoading } = useQuery({
+  const { data, error, isLoading, refetch } = useQuery({
     queryKey: ["products", store?.storeId],
     queryFn: fetchProducts,
     enabled: !!store?.storeId,
@@ -136,7 +144,7 @@ export default function ProductsPage() {
           const matchesSearch =
             product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             product.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.product_variants?.[index]?.sku
+            product.productVariants?.[index]?.sku
               ?.toLowerCase()
               .includes(searchTerm.toLowerCase());
           const matchesCategory =
@@ -190,7 +198,7 @@ export default function ProductsPage() {
               <Button
                 variant="default"
                 className="font-medium bg-red-500 hover:bg-red-600 text-white"
-                onClick={handleRetry}
+                onClick={refetch as any}
               >
                 Retry
               </Button>
@@ -288,28 +296,28 @@ export default function ProductsPage() {
 
               <TableBody>
                 {paginatedProducts.map((product: any) => {
-                  const totalStock = product.product_variants.reduce(
+                  const totalStock = product.productVariants.reduce(
                     (total: number, v: any) =>
                       total + (v.inventory.quantity ?? 0),
                     0
                   );
 
                   const minOriginalPrice = Math.min(
-                    ...product.product_variants.map((v: any) => v.originalPrice)
+                    ...product.productVariants.map((v: any) => v.originalPrice)
                   );
                   const maxOriginalPrice = Math.max(
-                    ...product.product_variants.map((v: any) => v.originalPrice)
+                    ...product.productVariants.map((v: any) => v.originalPrice)
                   );
 
                   const minFinalPrice = Math.min(
-                    ...product.product_variants.map((v: any) => v.finalPrice)
+                    ...product.productVariants.map((v: any) => v.finalPrice)
                   );
                   const maxFinalPrice = Math.max(
-                    ...product.product_variants.map((v: any) => v.finalPrice)
+                    ...product.productVariants.map((v: any) => v.finalPrice)
                   );
 
                   const lowStockThreshold = Math.min(
-                    ...product.product_variants.map(
+                    ...product.productVariants.map(
                       (v: any) => v.inventory.low_stock_quantity ?? Infinity
                     )
                   );
@@ -335,17 +343,17 @@ export default function ProductsPage() {
                         {product.brand}
                       </TableCell>
                       <TableCell className="text-sm truncate max-w-[8rem]">
-                        {product.product_variants[0]?.sku}
-                        {product.product_variants.length > 1 && (
+                        {product.productVariants[0]?.sku}
+                        {product.productVariants.length > 1 && (
                           <span className="ml-1 text-xs text-muted-foreground">
-                            +{product.product_variants.length - 1} more
+                            +{product.productVariants.length - 1} more
                           </span>
                         )}
                       </TableCell>
                       <TableCell className="truncate max-w-[8rem]">
-                        {product.category_type}
+                        {product.categoryType}
                       </TableCell>
-                      <TableCell>{product.product_variants.length}</TableCell>
+                      <TableCell>{product.productVariants.length}</TableCell>
                       <TableCell>{totalStock}</TableCell>
                       <TableCell className="font-medium">
                         {getCurrencySymbol(store?.currency as string)}
@@ -381,37 +389,58 @@ export default function ProductsPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                title="Delete"
+                                title={`Delete ${product.name}`}
+                                aria-label="Delete product"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </AlertDialogTrigger>
+
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete this product?
+                                <AlertDialogTitle className="flex items-center gap-2">
+                                  <Trash2
+                                    size={18}
+                                    className="text-destructive"
+                                  />
+                                  <span className="font-semibold">
+                                    Delete {product.name}?
+                                  </span>
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will permanently delete your product and
-                                  all its variants.
+                                  This action{" "}
+                                  <span className="font-semibold text-destructive">
+                                    cannot be undone
+                                  </span>
+                                  . It will permanently remove this product and
+                                  all of its variants including inventories from
+                                  your store. Are you sure you want to continue?
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
+
                               <AlertDialogFooter>
                                 <AlertDialogCancel disabled={loading}>
                                   Cancel
                                 </AlertDialogCancel>
+
                                 <AlertDialogAction asChild>
                                   <Button
                                     variant="destructive"
-                                    onClick={() =>
-                                      handleDeleteProduct(product.id)
-                                    }
                                     disabled={loading}
+                                    onClick={async (e) => {
+                                      e.preventDefault(); // ⛔ stop auto-close
+                                      await handleDeleteProduct(
+                                        product.id,
+                                        product.name
+                                      );
+                                    }}
                                   >
                                     {loading ? (
-                                      <ClipLoader size={16} color="white" />
+                                      <>
+                                        <Spinner /> Deleting
+                                      </>
                                     ) : (
-                                      "Delete"
+                                      "Yes, Delete"
                                     )}
                                   </Button>
                                 </AlertDialogAction>

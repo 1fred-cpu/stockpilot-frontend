@@ -14,13 +14,14 @@ const pieData = [
   { name: "Out of Stock", value: 11, color: "#EF4444" },
 ];
 
-interface PieData {
+type PieData = {
   name: string;
   value: number;
   color: string;
-}
+};
+
 export default function InventoryDistribution() {
-  const { getActiveStore } = useStore();
+  const { getActiveStore, reloadState } = useStore();
   const store = getActiveStore();
   const {
     data: pieData,
@@ -28,16 +29,16 @@ export default function InventoryDistribution() {
     refetch,
     error,
   } = useQuery({
-    queryKey: ["inventory-distribution", store?.store_id],
+    queryKey: ["inventory-distribution", store?.storeId, reloadState],
     queryFn: fetchInventoryDistribution,
-    enabled: !!store?.store_id,
+    enabled: !!store?.storeId,
     refetchOnWindowFocus: false,
   });
 
   async function fetchInventoryDistribution() {
     try {
       const response = await axiosInstance.get(
-        `/analytics/inventory-distribution/${store?.store_id}`
+        `/analytics/inventory-distribution/${store?.storeId}`
       );
       return response.data;
     } catch (error) {
