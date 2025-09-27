@@ -1,7 +1,7 @@
 // components/CreateSalePage.tsx
 "use client";
 
-import { ShoppingCart, X } from "lucide-react";
+import { ShoppingCart, X, Mail, Printer, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import {
@@ -30,20 +30,17 @@ import ErrorScreen from "./ErrorScreen";
 import { v4 as uuidv4 } from "uuid";
 import { generateReference } from "../../utils/generate-reference";
 import { toast } from "sonner";
-import { ClipLoader } from "react-spinners";
 import PageHeader from "./PageHeader";
 import { getCurrencySymbol } from "../../utils/currency";
 import Spinner from "./Spinner";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
 
 export default function CreateSalePage() {
   // cart quantities keyed by variant id
   const [saleData, setSaleData] = useState<Record<string, number>>({});
-
-  // idempotency key: created once per "intent". We generate once on mount.
   const [idempotencyKey, setIdempotencyKey] = useState<string>(() => uuidv4());
-
-  // submitted indicates the last payload was successfully processed.
-  // When true (and cart hasn't changed) we will prevent duplicate submits.
   const [submitted, setSubmitted] = useState<boolean>(false);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,6 +55,12 @@ export default function CreateSalePage() {
 
   // Payment method
   const [paymentMethod, setPaymentMethod] = useState("");
+
+  // --- Receipt Options ---
+  const [generateReceipt, setGenerateReceipt] = useState(false);
+  const [receiptChannel, setReceiptChannel] = useState<
+    "email" | "whatsapp" | "printer" | ""
+  >("");
 
   const { getActiveStore, appStore } = useStore();
   const store = getActiveStore();
@@ -82,8 +85,6 @@ export default function CreateSalePage() {
 
   const products = data?.products || [];
 
-  // Helper: when the user edits the cart or customer data after a successful submit,
-  // this indicates a new intent -> generate a new idempotency key and mark submitted=false
   const ensureNewIntentIfNeeded = () => {
     if (submitted) {
       setSubmitted(false);
@@ -91,13 +92,9 @@ export default function CreateSalePage() {
     }
   };
 
-  // Called when user changes a variant's quantity
   const handleSaleChange = (variantId: string, value: number) => {
-    // if user edits after successful submit, create a new intent/key
     ensureNewIntentIfNeeded();
-
     setSaleData((prev) => {
-      // if value is 0 or empty, remove from map to keep selectedVariants logic clean
       const next = { ...prev };
       if (!value || value <= 0) {
         delete next[variantId];
@@ -108,7 +105,6 @@ export default function CreateSalePage() {
     });
   };
 
-  // Watchers for customer fields: if edited after submission, create new intent
   const handleCustomerNameChange = (v: string) => {
     ensureNewIntentIfNeeded();
     setCustomerName(v);
@@ -127,7 +123,6 @@ export default function CreateSalePage() {
   };
 
   const handleSubmitSale = async () => {
-    // guard: nothing to submit
     const selectedVariants = products
       ?.flatMap((product: any) =>
         product.productVariants.map((v: any) => ({
@@ -159,16 +154,30 @@ export default function CreateSalePage() {
       return;
     }
 
-    // If already successfully submitted and nothing changed, prevent duplicate.
+    // Receipt validation
+    if (generateReceipt) {
+      if (receiptChannel === "email" && !customerEmail.trim()) {
+        toast.error("Customer email is required to send receipt by email.");
+        return;
+      }
+      if (receiptChannel === "whatsapp" && !customerPhone.trim()) {
+        toast.error("Customer phone is required to send receipt by WhatsApp.");
+        return;
+      }
+      if (!receiptChannel) {
+        toast.error("Please select a receipt channel.");
+        return;
+      }
+    }
+
     if (submitted) {
       toast.info("This sale has already been submitted.");
       return;
     }
 
-    const toastId = toast.loading("Creating a sale....");
+    const toastId = toast.loading("Creating a sale");
     setLoading(true);
 
-    // ensure we have an idempotency key (we set one on mount, but be robust)
     const keyToUse = idempotencyKey || uuidv4();
     if (!idempotencyKey) setIdempotencyKey(keyToUse);
 
@@ -195,35 +204,29 @@ export default function CreateSalePage() {
           unitPrice: variant?.finalPrice,
           discount: variant?.discount?.value || 0,
         })),
+        isRecieptNeeded: generateReceipt,
+        deliveryChannel: receiptChannel,
       };
 
       const response = await axiosInstance.post("/sales/create", payload);
 
-      // On success, mark as submitted to prevent accidental duplicate retries.
       if (response?.data?.message) {
         toast.success(response.data?.message || "Sale created successfully", {
           id: toastId,
         });
 
-        // clear cart & customer fields (UI reset)
         setSaleData({});
         setCustomerName("");
         setCustomerPhone("");
         setCustomerEmail("");
         setPaymentMethod("");
-
-        // mark as submitted (prevents duplicate submits of same payload/key)
+        setGenerateReceipt(false);
+        setReceiptChannel("");
         setSubmitted(true);
-
-        // Do NOT auto-generate a new idempotency key here.
-        // A new key will be generated only when user edits the cart or clicks Reset.
-        // If you regenerate here, a quickly-clicked Submit may create a new sale.
-        // setIdempotencyKey(uuidv4()); <-- intentionally omitted
 
         await refetch();
       }
     } catch (err: any) {
-      // Let user retry with same idempotency key (backend should dedupe)
       toast.error(
         err?.response?.data?.message || err.message || "Submit failed",
         { id: toastId }
@@ -233,19 +236,20 @@ export default function CreateSalePage() {
     }
   };
 
-  // Reset EVERYTHING (new sale session)
   const handleReset = () => {
     setSaleData({});
     setCustomerName("");
     setCustomerPhone("");
+    setCustomerEmail("");
+    setPaymentMethod("");
     setSearchQuery("");
     setCurrentPage(1);
-    // New session -> new idempotency key
     setIdempotencyKey(uuidv4());
     setSubmitted(false);
+    setGenerateReceipt(false);
+    setReceiptChannel("");
   };
 
-  // --- Filtering + Pagination (UI) ---
   const filteredProducts = products?.filter(
     (p: any) =>
       p?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -310,7 +314,7 @@ export default function CreateSalePage() {
         subtitle="Create a new sale for your store"
       />
       <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
-        {/* Left: Products Table */}
+        {/* Left: Products */}
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -378,7 +382,6 @@ export default function CreateSalePage() {
                                   loading="lazy"
                                 />
                                 <span className="text-sm truncate">
-                                  {" "}
                                   {variant.name}
                                 </span>
                               </div>
@@ -450,7 +453,7 @@ export default function CreateSalePage() {
           </CardContent>
         </Card>
 
-        {/* Right: Cart + Customer Info */}
+        {/* Right: Sale Summary */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -499,7 +502,7 @@ export default function CreateSalePage() {
 
             {/* Selected Cart */}
             {selectedVariants.length === 0 && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground py-6">
                 No items added to cart.
               </p>
             )}
@@ -524,7 +527,6 @@ export default function CreateSalePage() {
                       setSaleData((prev) => {
                         const newData = { ...prev };
                         delete newData[variant.id];
-                        // if removing after a successful submit, this is a new intent
                         ensureNewIntentIfNeeded();
                         return newData;
                       })
@@ -552,37 +554,90 @@ export default function CreateSalePage() {
               </div>
             )}
 
+            {/* Receipt Options */}
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor="generate-receipt"
+                  className="text-sm font-medium"
+                >
+                  Generate Receipt
+                </Label>
+                <Switch
+                  id="generate-receipt"
+                  checked={generateReceipt}
+                  onCheckedChange={setGenerateReceipt}
+                  disabled={loading}
+                />
+              </div>
+
+              {generateReceipt && (
+                <RadioGroup
+                  className="space-y-2"
+                  value={receiptChannel}
+                  onValueChange={(val) => setReceiptChannel(val as any)}
+                >
+                  <div className="flex items-center space-x-3 p-2 border rounded-lg hover:bg-muted cursor-pointer">
+                    <RadioGroupItem value="email" id="email" />
+                    <Label
+                      htmlFor="email"
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <Mail className="w-4 h-4 text-blue-500" /> Email
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-3 p-2 border rounded-lg hover:bg-muted cursor-pointer">
+                    <RadioGroupItem value="whatsapp" id="whatsapp" />
+                    <Label
+                      htmlFor="whatsapp"
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <MessageSquare className="w-4 h-4 text-green-500" />{" "}
+                      WhatsApp
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-3 p-2 border rounded-lg hover:bg-muted cursor-pointer">
+                    <RadioGroupItem value="printer" id="printer" />
+                    <Label
+                      htmlFor="printer"
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <Printer className="w-4 h-4 text-gray-500" /> Printer
+                    </Label>
+                  </div>
+                </RadioGroup>
+              )}
+            </div>
+
             {/* Action Buttons */}
-            <div className="flex gap-2.5 justify-end">
-              <Button
-                onClick={handleReset}
-                variant="secondary"
-                disabled={loading}
-              >
-                Reset
-              </Button>
+            <div className="flex gap-3 pt-4 border-t">
               <Button
                 onClick={handleSubmitSale}
-                disabled={loading || totalItems === 0 || submitted}
-                title={
-                  submitted
-                    ? "Sale already submitted for this cart"
-                    : loading
-                    ? "Submitting..."
-                    : totalItems === 0
-                    ? "Add items to cart"
-                    : "Submit Sale"
+                disabled={
+                  loading ||
+                  totalItems === 0 ||
+                  submitted ||
+                  (generateReceipt && !receiptChannel)
                 }
               >
                 {loading ? (
                   <>
-                    <Spinner /> Submitting
+                    <Spinner />
+                    Submitting
                   </>
-                ) : submitted ? (
-                  "Submitted"
                 ) : (
                   "Submit Sale"
                 )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleReset}
+                disabled={loading}
+              >
+                Reset
               </Button>
             </div>
           </CardContent>

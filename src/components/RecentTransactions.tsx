@@ -94,18 +94,19 @@ export default function RecentTransactions() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentTransactions.map((transaction: Transaction) => (
-                <TableRow key={transaction.saleId}>
-                  <TableCell className="font-medium">
-                    {transaction.saleId}
-                  </TableCell>
-                  <TableCell>{transaction.product}</TableCell>
-                  <TableCell>
-                    {getCurrencySymbol(store?.currency as string)}
-                    {transaction.amount.toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    {/* <Badge
+              {recentTransactions.map(
+                (transaction: Transaction, index: number) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">
+                      {transaction.saleId}
+                    </TableCell>
+                    <TableCell>{transaction.product}</TableCell>
+                    <TableCell>
+                      {getCurrencySymbol(store?.currency as string)}
+                      {transaction.amount.toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                      {/* <Badge
                         variant={
                           transaction.status === "Paid"
                             ? "default"
@@ -116,12 +117,13 @@ export default function RecentTransactions() {
                       >
                         {transaction.status}
                       </Badge> */}
-                    <span className={`font-medium`}>
-                      {transaction.quantity}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
+                      <span className={`font-medium`}>
+                        {transaction.quantity}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                )
+              )}
             </TableBody>
           </Table>
         ) : (

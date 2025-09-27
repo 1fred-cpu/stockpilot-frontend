@@ -28,6 +28,7 @@ import axiosInstance from "../../utils/axiosInstance";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "./ui/skeleton";
 import ErrorScreen from "./ErrorScreen";
+import { getCurrencySymbol } from "../../utils/currency";
 
 export default function SaleTable() {
   const [statusFilter, setStatusFilter] = useState("all");
@@ -158,7 +159,8 @@ export default function SaleTable() {
         <div className="mb-4 text-sm text-muted-foreground">
           Total Revenue:{" "}
           <span className="font-semibold text-foreground">
-            ${totalRevenue.toFixed(2)}
+            {getCurrencySymbol(store?.currency)}
+            {totalRevenue.toFixed(2)}
           </span>
         </div>
 
