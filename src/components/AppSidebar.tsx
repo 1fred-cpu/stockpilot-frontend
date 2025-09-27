@@ -55,6 +55,12 @@ const menuItems = [
     icon: Store,
   },
   {
+    id: "returns",
+    href: "/dashboard/returns",
+    title: "Returns",
+    icon: Package,
+  },
+  {
     id: "analytics",
     href: "/dashboard/analytics",
     title: "Analytics",
