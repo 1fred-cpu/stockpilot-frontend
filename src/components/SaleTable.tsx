@@ -30,6 +30,38 @@ import { Skeleton } from "./ui/skeleton";
 import ErrorScreen from "./ErrorScreen";
 import { getCurrencySymbol } from "../../utils/currency";
 
+export function getStatusClasses(status: string): string {
+  switch (status.toLowerCase()) {
+    // 🔹 Order / Return statuses
+    case "sold":
+      return "text-green-800 dark:text-green-400";
+    case "returned":
+      return "text-red-800 dark:text-red-400";
+    case "refunded":
+      return "text-orange-800 dark:text-orange-400";
+    case "exchanged":
+      return "text-blue-800 dark:text-blue-400";
+    case "store credit":
+      return "text-purple-800 dark:text-purple-400";
+    case "pending":
+      return "text-gray-800 dark:text-gray-400";
+
+    // 🔹 Payment methods
+    case "cash":
+      return "text-yellow-700 dark:text-yellow-400";
+    case "card":
+      return "text-indigo-700 dark:text-indigo-400";
+    case "momo": // Mobile Money
+    case "mobile money":
+      return "text-pink-700 dark:text-pink-400";
+    case "bank":
+    case "bank transfer":
+      return "text-teal-700 dark:text-teal-400";
+
+    default:
+      return "text-slate-800 dark:text-slate-400";
+  }
+}
 export default function SaleTable() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,11 +109,16 @@ export default function SaleTable() {
     });
   }, [statusFilter, searchTerm, selectedDate, data]);
 
-  // Calculate total revenue
+  // Total revenue
   const totalRevenue = useMemo(() => {
+    const seen = new Set();
     return filteredTransactions.reduce((sum: number, transaction: any) => {
-      const num = transaction?.totalPrice;
-      return sum + (isNaN(num) ? 0 : num);
+      if (!seen.has(transaction.saleId)) {
+        seen.add(transaction.saleId);
+        const num = transaction?.netAmount;
+        return sum + (isNaN(num) ? 0 : num);
+      }
+      return sum;
     }, 0);
   }, [filteredTransactions]);
 
@@ -91,6 +128,9 @@ export default function SaleTable() {
   if (error) {
     return <ErrorScreen handleRetry={refetch} />;
   }
+  // utils/getStatusColor.ts
+
+  // utils/getStatusClasses.ts
 
   return (
     <Card>
@@ -167,13 +207,15 @@ export default function SaleTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Sale ID</TableHead>
+              <TableHead>Sale Code</TableHead>
               <TableHead>Product</TableHead>
               <TableHead>Variant</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Quantity</TableHead>
               <TableHead>Unit Price</TableHead>
               <TableHead>Amount</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Return Quantity</TableHead>
               <TableHead>Payment Method</TableHead>
               <TableHead>Date</TableHead>
               {/* <TableHead>Status</TableHead> */}
@@ -185,7 +227,7 @@ export default function SaleTable() {
                 key={transaction?.saleId + transaction?.productVariant?.id}
               >
                 <TableCell className="font-mono text-sm">
-                  {transaction?.reference || transaction?.sale_id}
+                  {transaction?.saleCode || transaction?.sale_id}
                 </TableCell>
 
                 <TableCell className="font-medium">
@@ -200,12 +242,28 @@ export default function SaleTable() {
 
                 <TableCell>{transaction?.quantity}</TableCell>
                 <TableCell className="font-medium">
+                  {getCurrencySymbol(store?.currency)}
                   {transaction?.unitPrice?.toFixed(2)}
                 </TableCell>
                 <TableCell className="font-medium">
+                  {getCurrencySymbol(store?.currency)}
                   {transaction?.totalPrice?.toFixed(2)}
                 </TableCell>
-                <TableCell className="font-medium">
+                <TableCell
+                  className={`font-medium capitalize ${getStatusClasses(
+                    transaction.status
+                  )}`}
+                >
+                  {transaction?.status}
+                </TableCell>
+                <TableCell className="font-medium capitalize">
+                  {transaction?.returnQuantity || 0}
+                </TableCell>
+                <TableCell
+                  className={`font-medium capitalize ${getStatusClasses(
+                    transaction.paymentMethod
+                  )}`}
+                >
                   {transaction?.paymentMethod}
                 </TableCell>
                 <TableCell className="text-foreground">

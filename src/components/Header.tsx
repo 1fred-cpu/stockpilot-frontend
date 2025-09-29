@@ -10,7 +10,7 @@ import ProfileMenu from "./ProfileMenu";
 const ThemeMode = dynamic(() => import("./ThemeMode"), { ssr: false });
 export default function Header() {
   return (
-    <header className="bg-background px-6 py-4 sticky top-0 z-10 border-b dark:border-0">
+    <header className="bg-sidebar px-6 py-4 sticky top-0 z-10 border-b dark:border-0">
       <div className="flex items-center justify-between">
         {/** Sidebar Trigger */}
         <div className="flex items-center gap-2">
